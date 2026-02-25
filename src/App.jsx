@@ -11,6 +11,27 @@ const MEMFIRE_URL = import.meta.env.VITE_MEMFIRE_URL || "https://d647ojgg91hgk1g
 const MEMFIRE_ANON_KEY = import.meta.env.VITE_MEMFIRE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImV4cCI6MzM0NzM1MjM5OCwiaWF0IjoxNzcwNTUyMzk4LCJpc3MiOiJzdXBhYmFzZSJ9.jWRdDqRdG9hx0UCDtHdM6xmUmmALuxFaQoaaLbIpmmU"
 const memFire = createClient(MEMFIRE_URL, MEMFIRE_ANON_KEY)
 
+// 店面分类：四大类及其子项（下拉先选大类，再选子项）
+const SHOP_CATEGORIES = [
+  {
+    name: '咖啡/饮茶',
+    items: ['精品咖啡店', '书店咖啡吧', '日咖夜酒', '新中式茶饮', '饮茶空间', '围炉煮茶']
+  },
+  {
+    name: '餐吧',
+    items: ['西式餐吧 (Bistro)', '泰式餐吧', '户外营地餐吧', '露台景观餐吧', '艺术空间餐吧']
+  },
+  {
+    name: '酒吧',
+    items: ['鸡尾酒吧', '威士忌吧', '清吧', '音乐酒吧', '日式居酒屋', '精酿']
+  },
+  {
+    name: '其他',
+    items: ['跳舞/电音', 'Live House', '黑胶听歌吧', '桌游/游戏吧', '绿植花艺店', '冥想疗愈室', '复古电玩吧', 'DIY工作坊']
+  }
+]
+const ALL_CATEGORY_ITEMS = SHOP_CATEGORIES.flatMap(c => c.items)
+
 // 辅助函数：将裁剪后的区域转为 File 对象
 async function getCroppedImg(imageSrc, pixelCrop) {
   const image = new Image()
@@ -192,7 +213,7 @@ function App() {
     setOldName(bar.name || '') // 记录旧名字
     setFormData({
       name: bar.name || '',
-      category: bar.category || '鸡尾酒吧',
+      category: ALL_CATEGORY_ITEMS.includes(bar.category) ? bar.category : '鸡尾酒吧',
       address: bar.address || '',
       latitude: bar.latitude || '',
       longitude: bar.longitude || '',
@@ -438,10 +459,16 @@ function App() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-2">类别</label>
+                <label className="block text-sm font-bold text-slate-500 mb-2">店面分类</label>
                 <select className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" 
                   value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                  <option>鸡尾酒吧</option><option>威士忌吧</option><option>清吧</option><option>音乐酒吧</option><option>精酿啤酒</option>
+                  {SHOP_CATEGORIES.map(cat => (
+                    <optgroup key={cat.name} label={cat.name}>
+                      {cat.items.map(item => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
