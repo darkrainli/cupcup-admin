@@ -442,7 +442,7 @@ function App() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                 {editingId ? <Edit2 className="text-indigo-600" /> : <Plus className="text-indigo-600" />} 
-                {editingId ? '修改酒吧信息' : '录入新酒吧'}
+                {editingId ? '修改店铺信息' : '录入新店铺'}
               </h2>
               {editingId && (
                 <button onClick={cancelEdit} className="text-slate-400 hover:text-red-500 transition-colors">
@@ -453,7 +453,7 @@ function App() {
             
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-2">酒吧名称</label>
+                <label className="block text-sm font-bold text-slate-500 mb-2">店铺名称</label>
                 <input required className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition-all" 
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="输入酒吧名字..." />
               </div>
@@ -498,7 +498,7 @@ function App() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-3">酒吧照片 (最多 5 张，第一张将作为封面图)</label>
+                <label className="block text-sm font-bold text-slate-500 mb-3">店铺照片 (最多 5 张，第一张将作为封面图)</label>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   {/* 已有图片预览 (编辑模式) */}
                   {previews.existingImages.map((url, idx) => (
