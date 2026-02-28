@@ -50,6 +50,7 @@ export default function PartnerCreateActivity() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [targetBlackCardCount, setTargetBlackCardCount] = useState(5)
+  const [maxParticipants, setMaxParticipants] = useState(10)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [address, setAddress] = useState('')
@@ -94,7 +95,7 @@ export default function PartnerCreateActivity() {
     setActivitiesLoading(true)
     const { data, error } = await memFire
       .from('bar_events')
-      .select('id, title, cover_image_url, status, created_at, reject_reason')
+      .select('id, title, cover_image_url, status, created_at, reject_reason, max_participants, actual_verified_count')
       .eq('bar_id', barId)
       .order('created_at', { ascending: false })
     setActivitiesLoading(false)
@@ -145,6 +146,7 @@ export default function PartnerCreateActivity() {
     setTitle(data.title ?? '')
     setContent(data.content ?? '')
     setTargetBlackCardCount(Math.min(15, Math.max(3, Number(data.target_black_card_count) || 5)))
+    setMaxParticipants(Math.max(1, Number(data.max_participants) ?? 10))
     setStartTime(data.start_time ? data.start_time.slice(0, 16) : '')
     setEndTime(data.end_time ? data.end_time.slice(0, 16) : '')
     setAddress(data.address ?? '')
@@ -164,6 +166,7 @@ export default function PartnerCreateActivity() {
     setTitle('')
     setContent('')
     setTargetBlackCardCount(5)
+    setMaxParticipants(10)
     setStartTime('')
     setEndTime('')
     setAddress(barDisplay?.address ?? '')
@@ -189,6 +192,11 @@ export default function PartnerCreateActivity() {
       setSubmitError('结束时间须晚于开始时间')
       return
     }
+    const maxP = Number(maxParticipants)
+    if (!Number.isInteger(maxP) || maxP < 1) {
+      setSubmitError('请填写活动名额限制（至少 1 人）')
+      return
+    }
     setSubmitting(true)
     try {
       const coverImageUrl = coverFile ? await uploadActivityCover(coverFile) : (editingCoverUrl || '')
@@ -203,7 +211,9 @@ export default function PartnerCreateActivity() {
         end_time: new Date(endTime).toISOString(),
         address: address.trim(),
         contact_phone: contactPhone.trim(),
-        status: 'pending'
+        status: 'pending',
+        max_participants: Math.max(1, Number(maxParticipants)) || 10,
+        actual_verified_count: 0
       }
       // 始终新增一条待审核记录，便于管理员看到「新申请」；不修改原驳回/待审核记录
       const { error: insertErr } = await memFire.from('bar_events').insert([payload])
@@ -401,6 +411,9 @@ export default function PartnerCreateActivity() {
                           {item.status === 'pending' && <AlertCircle size={10} />}
                           {item.status === 'approved' ? '已发布' : item.status === 'rejected' ? '已驳回' : '待审核'}
                         </span>
+                        <p className="mt-1.5 text-xs text-slate-600">
+                          到店核销：{item.actual_verified_count ?? 0} / {item.max_participants ?? 0} 人
+                        </p>
                         {item.status === 'rejected' && item.reject_reason && (
                           <p className="mt-2 text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-2">
                             <span className="font-bold">驳回理由：</span>{item.reject_reason}
@@ -502,6 +515,24 @@ export default function PartnerCreateActivity() {
                   <option key={n} value={n}>{n} 张</option>
                 ))}
               </select>
+            </div>
+
+            {/* 活动名额限制 */}
+            <div>
+              <label className="block text-sm font-bold text-slate-600 mb-2 flex items-center gap-2">
+                <Wine size={16} /> 活动名额限制 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={9999}
+                value={maxParticipants}
+                onChange={(e) => setMaxParticipants(Math.min(9999, Math.max(0, Number(e.target.value) || 0)))}
+                placeholder="例如 50"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none"
+                required
+              />
+              <p className="mt-1 text-xs text-slate-500">活动邀请名额上限（人），用于统计转化率</p>
             </div>
 
             {/* 活动时间范围 */}
