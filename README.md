@@ -1,17 +1,10 @@
 # CupCup 酒吧管理后台
 
-CupStation 店铺数据管理，对接 **MemFire**（bars、collected_cards、bar_events、Storage 桶 `cup-images`）。
+CupStation 店铺数据管理，对接 **MemFire**（bars、collected_cards、Storage 桶 `cup-images`）。
 
-- **线上地址**：https://cupcup-admin.vercel.app/
+- 线上地址：https://cupcup-admin.vercel.app/
 
-## 入口
-
-| 角色   | 路径                     | 说明           |
-|--------|--------------------------|----------------|
-| 管理员 | `/` 或 `/admin/audit-activities` | 门店管理、活动审核、生成商户账号 |
-| 商户   | `/partner/login`         | 商户登录后发布/编辑活动 |
-
-## 管理员登录
+## 登录
 
 | 项目     | 值        |
 |----------|-----------|

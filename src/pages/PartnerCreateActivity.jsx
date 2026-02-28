@@ -70,6 +70,7 @@ export default function PartnerCreateActivity() {
   // 编辑某条活动（仅待审核/已驳回可编辑）
   const [editingEventId, setEditingEventId] = useState(null)
   const [editingCoverUrl, setEditingCoverUrl] = useState('')
+  const [editingRejectReason, setEditingRejectReason] = useState('')
 
   // 未登录商户则跳转登录
   if (!authLoading && !isPartnerLoggedIn) {
@@ -93,7 +94,7 @@ export default function PartnerCreateActivity() {
     setActivitiesLoading(true)
     const { data, error } = await memFire
       .from('bar_events')
-      .select('id, title, cover_image_url, status, created_at')
+      .select('id, title, cover_image_url, status, created_at, reject_reason')
       .eq('bar_id', barId)
       .order('created_at', { ascending: false })
     setActivitiesLoading(false)
@@ -151,6 +152,7 @@ export default function PartnerCreateActivity() {
     setCoverPreviewUrl(data.cover_image_url ?? '')
     setCoverFile(null)
     setEditingCoverUrl(data.cover_image_url ?? '')
+    setEditingRejectReason(data.reject_reason ?? '')
     setEditingEventId(eventId)
     setSubmitError('')
   }
@@ -158,6 +160,7 @@ export default function PartnerCreateActivity() {
   const handleCancelEdit = () => {
     setEditingEventId(null)
     setEditingCoverUrl('')
+    setEditingRejectReason('')
     setTitle('')
     setContent('')
     setTargetBlackCardCount(5)
@@ -398,6 +401,11 @@ export default function PartnerCreateActivity() {
                           {item.status === 'pending' && <AlertCircle size={10} />}
                           {item.status === 'approved' ? '已发布' : item.status === 'rejected' ? '已驳回' : '待审核'}
                         </span>
+                        {item.status === 'rejected' && item.reject_reason && (
+                          <p className="mt-2 text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-2.5 py-2">
+                            <span className="font-bold">驳回理由：</span>{item.reject_reason}
+                          </p>
+                        )}
                         {(item.status === 'pending' || item.status === 'rejected') && (
                           <button
                             type="button"
@@ -430,6 +438,13 @@ export default function PartnerCreateActivity() {
               </button>
             )}
           </div>
+
+          {editingEventId && editingRejectReason && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200">
+              <p className="text-sm font-bold text-red-800 mb-1">上次驳回理由</p>
+              <p className="text-sm text-red-700">{editingRejectReason}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 活动头图：1:1 裁切 + 300KB 压缩 */}

@@ -16,6 +16,8 @@ export default function AuditActivities() {
   const [detail, setDetail] = useState(null)
   const [detailForm, setDetailForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [rejectModal, setRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
 
   const fetchAll = async () => {
     setLoading(true)
@@ -49,8 +51,22 @@ export default function AuditActivities() {
     })
   }
 
-  const updateDetail = async (newStatus) => {
+  const openRejectModal = () => {
+    setRejectReason('')
+    setRejectModal(true)
+  }
+
+  const updateDetail = async (newStatus, rejectReasonText) => {
     if (!detail?.id) return
+    if (newStatus === 'rejected') {
+      const trimmed = (rejectReasonText ?? rejectReason).trim()
+      if (!trimmed) {
+        alert('请填写驳回理由，方便商户修改后重新提交。')
+        return
+      }
+      setRejectModal(false)
+      setRejectReason('')
+    }
     setSaving(true)
     const payload = {
       ...(detailForm && {
@@ -62,7 +78,8 @@ export default function AuditActivities() {
         start_time: detailForm.start_time ? new Date(detailForm.start_time).toISOString() : detail.start_time,
         end_time: detailForm.end_time ? new Date(detailForm.end_time).toISOString() : detail.end_time
       }),
-      status: newStatus
+      status: newStatus,
+      ...(newStatus === 'rejected' && { reject_reason: (rejectReasonText ?? rejectReason).trim() })
     }
     const { error } = await memFire.from('bar_events').update(payload).eq('id', detail.id)
     setSaving(false)
@@ -74,7 +91,7 @@ export default function AuditActivities() {
     setDetailForm(null)
     fetchAll()
     if (newStatus === 'approved') alert('已通过审核，系统将按规则向黑卡用户发卡。')
-    else alert('已驳回。')
+    else alert('已驳回，商户将看到您填写的驳回理由。')
   }
 
   return (
@@ -228,7 +245,7 @@ export default function AuditActivities() {
               <button
                 type="button"
                 disabled={saving}
-                onClick={() => updateDetail('rejected')}
+                onClick={openRejectModal}
                 className="flex-1 bg-slate-100 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-200 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <XCircle size={18} /> 驳回
@@ -240,6 +257,43 @@ export default function AuditActivities() {
                 className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />} 通过审核
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 驳回理由弹窗 */}
+      {rejectModal && detail && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-6" onClick={() => !saving && setRejectModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-slate-800 mb-2">填写驳回理由</h3>
+            <p className="text-sm text-slate-500 mb-4">商户将看到此理由，便于修改后重新提交。</p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="例如：活动时间与现有活动冲突，请调整后重新提交"
+              maxLength={500}
+              rows={4}
+              className="w-full bg-slate-50 rounded-xl px-3 py-3 text-sm resize-none border border-slate-200 focus:border-indigo-300 focus:ring-1 focus:ring-indigo-300"
+              autoFocus
+            />
+            <p className="text-xs text-slate-400 mt-1">{rejectReason.length}/500</p>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setRejectModal(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => updateDetail('rejected', rejectReason)}
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <XCircle size={18} />} 确认驳回
               </button>
             </div>
           </div>
