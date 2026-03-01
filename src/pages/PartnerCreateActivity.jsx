@@ -7,7 +7,7 @@ import Cropper from 'react-easy-crop'
 import imageCompression from 'browser-image-compression'
 import {
   Wine, Loader2, Image as ImageIcon, Scissors, MapPin, Phone, Calendar,
-  FileText, Hash, Clock, CheckCircle2, XCircle, AlertCircle, Edit2
+  FileText, Hash, Clock, CheckCircle2, XCircle, AlertCircle, Edit2, PieChart
 } from 'lucide-react'
 import { usePartnerAuth } from '../context/PartnerAuthContext'
 import { memFire } from '../context/PartnerAuthContext'
@@ -38,6 +38,30 @@ async function uploadActivityCover(file) {
   if (error) throw error
   const { data } = memFire.storage.from('cup-images').getPublicUrl(path)
   return data.publicUrl
+}
+
+// 两段占比饼图：实际到店 vs 未到店（纯 SVG，无图表库）
+function PieChartSvg({ totalSlots, actualVisit }) {
+  const r = 40
+  const cx = 50
+  const cy = 50
+  const ratio = totalSlots > 0 ? Math.min(1, actualVisit / totalSlots) : 0
+  const angle1 = ratio * 360
+  const toRad = (deg) => (deg - 90) * (Math.PI / 180)
+  const point = (deg) => ({ x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) })
+  const large = (a, b) => (b - a > 180 ? 1 : 0)
+  const path1 = angle1 > 0
+    ? `M ${cx} ${cy} L ${point(0).x} ${point(0).y} A ${r} ${r} 0 ${large(0, angle1)} 1 ${point(angle1).x} ${point(angle1).y} Z`
+    : ''
+  const path2 = angle1 < 360
+    ? `M ${cx} ${cy} L ${point(angle1).x} ${point(angle1).y} A ${r} ${r} 0 ${large(angle1, 360)} 1 ${point(360).x} ${point(360).y} Z`
+    : ''
+  return (
+    <svg width={100} height={100} viewBox="0 0 100 100" className="shrink-0">
+      <path d={path1} fill="#6366f1" stroke="#fff" strokeWidth={2} />
+      <path d={path2} fill="#e2e8f0" stroke="#fff" strokeWidth={2} />
+    </svg>
+  )
 }
 
 export default function PartnerCreateActivity() {
@@ -106,6 +130,14 @@ export default function PartnerCreateActivity() {
   useEffect(() => {
     if (barId) fetchActivitiesList()
   }, [barId, fetchActivitiesList])
+
+  // 饼图数据：仅统计审核通过的活动。发起活动人数 = 总名额，实际到店人数 = 核销人数汇总（后续可接拍杯打卡去重）
+  const pieStats = (() => {
+    const approved = activitiesList.filter((a) => a.status === 'approved')
+    const totalSlots = approved.reduce((s, a) => s + (Number(a.max_participants) || 0), 0)
+    const actualVisit = approved.reduce((s, a) => s + (Number(a.actual_verified_count) || 0), 0)
+    return { totalSlots, actualVisit }
+  })()
 
   const onCropComplete = useCallback((_, area) => {
     setCroppedAreaPixels(area)
@@ -340,38 +372,72 @@ export default function PartnerCreateActivity() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* 顶部：当前门店信息 */}
-        {barDisplay && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Wine size={14} /> 当前门店
-            </h2>
-            <div className="flex gap-4">
-              {barDisplay.cover_image_url ? (
-                <img
-                  src={barDisplay.cover_image_url}
-                  alt=""
-                  className="w-20 h-20 rounded-xl object-cover border border-slate-100"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-                  <ImageIcon size={28} />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-black text-slate-800 truncate">{barDisplay.name || '未命名门店'}</p>
-                <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                  <MapPin size={12} /> {barDisplay.address || '未填写地址'}
-                </p>
-                {barDisplay.contact_phone && (
-                  <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Phone size={12} /> {barDisplay.contact_phone}
-                  </p>
+        {/* 顶部：当前门店信息 + 到店转化饼图 */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+          {barDisplay && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex-1">
+              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Wine size={14} /> 当前门店
+              </h2>
+              <div className="flex gap-4">
+                {barDisplay.cover_image_url ? (
+                  <img
+                    src={barDisplay.cover_image_url}
+                    alt=""
+                    className="w-20 h-20 rounded-xl object-cover border border-slate-100"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+                    <ImageIcon size={28} />
+                  </div>
                 )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-slate-800 truncate">{barDisplay.name || '未命名门店'}</p>
+                  <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                    <MapPin size={12} /> {barDisplay.address || '未填写地址'}
+                  </p>
+                  {barDisplay.contact_phone && (
+                    <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5">
+                      <Phone size={12} /> {barDisplay.contact_phone}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+
+          {/* 发起活动人数 vs 实际到店人数 占比图（仅统计审核通过的活动） */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 shrink-0">
+            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <PieChart size={14} /> 到店转化
+            </h2>
+            <div className="flex items-center gap-4">
+              {pieStats.totalSlots > 0 ? (
+                <>
+                  <PieChartSvg totalSlots={pieStats.totalSlots} actualVisit={pieStats.actualVisit} />
+                  <div className="flex flex-col gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-indigo-500 shrink-0" />
+                      <span className="text-slate-600">实际到店：<strong>{pieStats.actualVisit}</strong> 人</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-slate-200 shrink-0" />
+                      <span className="text-slate-600">未到店：<strong>{Math.max(0, pieStats.totalSlots - pieStats.actualVisit)}</strong> 人</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">总名额（审核通过活动）：{pieStats.totalSlots} 人</p>
+                    <p className="text-xs text-slate-400">实际到店为核销人数汇总；拍杯打卡去重可后续接入</p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-slate-400 py-4 px-6">
+                  <PieChart size={32} className="mb-2 opacity-50" />
+                  <p className="text-sm">暂无审核通过的活动</p>
+                  <p className="text-xs mt-0.5">活动通过后将在此显示名额与到店占比</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
         {/* 左列表 + 右表单 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

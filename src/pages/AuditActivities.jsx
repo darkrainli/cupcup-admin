@@ -1,10 +1,10 @@
 /**
- * 管理员审核页：列表展示所有商户活动（待审核+已审核），详情弹窗可编辑，封面图完整显示，提供通过/驳回
+ * 管理员审核页：列表展示所有商户活动（待审核+已审核），详情弹窗可编辑，封面图完整显示，提供通过/驳回；已通过活动展示发卡名单
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
-import { Loader2, CheckCircle2, XCircle, ArrowLeft, FileText, Calendar, X, AlertCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, ArrowLeft, FileText, Calendar, X, AlertCircle, Users } from 'lucide-react'
 
 const MEMFIRE_URL = import.meta.env.VITE_MEMFIRE_URL || 'https://d647ojgg91hgk1gnpfqg.baseapi.memfiredb.com'
 const MEMFIRE_ANON_KEY = import.meta.env.VITE_MEMFIRE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImV4cCI6MzM0NzM1MjM5OCwiaWF0IjoxNzcwNTUyMzk4LCJpc3MiOiJzdXBhYmFzZSJ9.jWRdDqRdG9hx0UCDtHdM6xmUmmALuxFaQoaaLbIpmmU'
@@ -18,6 +18,8 @@ export default function AuditActivities() {
   const [saving, setSaving] = useState(false)
   const [rejectModal, setRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [participantsList, setParticipantsList] = useState([])
+  const [loadingParticipants, setLoadingParticipants] = useState(false)
 
   const fetchAll = async () => {
     setLoading(true)
@@ -38,14 +40,34 @@ export default function AuditActivities() {
     fetchAll()
   }, [])
 
+  const fetchRecipients = useCallback(async (eventId) => {
+    if (!eventId) return
+    setLoadingParticipants(true)
+    const { data, error } = await memFire
+      .from('v_event_ssr_recipients')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('card_created_at', { ascending: false })
+    if (error) {
+      console.error('fetch recipients', error)
+      setParticipantsList([])
+    } else {
+      setParticipantsList(data || [])
+    }
+    setLoadingParticipants(false)
+  }, [])
+
   const openDetail = (row) => {
     setDetail(row)
+    if (row?.status === 'approved' && row?.id) fetchRecipients(row.id)
+    else setParticipantsList([])
     setDetailForm({
       title: row.title ?? '',
       content: row.content ?? '',
       address: row.address ?? '',
       contact_phone: row.contact_phone ?? '',
       target_black_card_count: row.target_black_card_count ?? 5,
+      max_participants: row.max_participants ?? 0,
       start_time: row.start_time ? row.start_time.slice(0, 16) : '',
       end_time: row.end_time ? row.end_time.slice(0, 16) : ''
     })
@@ -75,6 +97,7 @@ export default function AuditActivities() {
         address: detailForm.address,
         contact_phone: detailForm.contact_phone,
         target_black_card_count: Math.min(15, Math.max(3, Number(detailForm.target_black_card_count) || 5)),
+        max_participants: Math.max(0, Number(detailForm.max_participants) || 0),
         start_time: detailForm.start_time ? new Date(detailForm.start_time).toISOString() : detail.start_time,
         end_time: detailForm.end_time ? new Date(detailForm.end_time).toISOString() : detail.end_time
       }),
@@ -207,6 +230,20 @@ export default function AuditActivities() {
                 />
               </div>
               <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">活动名额限制（邀请人数，人）</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={9999}
+                  value={detailForm.max_participants}
+                  onChange={e => setDetailForm({ ...detailForm, max_participants: e.target.value })}
+                  className="w-full bg-slate-50 rounded-xl px-3 py-2 text-sm"
+                />
+                {detail?.actual_verified_count != null && (
+                  <p className="text-xs text-slate-500 mt-1">已核销：{detail.actual_verified_count} 人</p>
+                )}
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">开始时间</label>
                 <input
                   type="datetime-local"
@@ -241,6 +278,50 @@ export default function AuditActivities() {
                 />
               </div>
             </div>
+
+            {/* 发卡名单：仅已通过审核的活动展示 */}
+            {detail?.status === 'approved' && (
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-3">
+                  <Users size={16} /> 发卡名单（{participantsList.length} 人）
+                </h3>
+                {loadingParticipants ? (
+                  <div className="flex justify-center py-6"><Loader2 className="animate-spin text-indigo-500" size={24} /></div>
+                ) : participantsList.length === 0 ? (
+                  <p className="text-sm text-slate-400">暂无发卡记录</p>
+                ) : (
+                  <div className="overflow-x-auto max-h-48 overflow-y-auto rounded-xl border border-slate-100">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 sticky top-0">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600">昵称</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600">CupID</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600">核销码</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600">状态</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600">发卡时间</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {participantsList.map((r) => (
+                          <tr key={r.card_id} className="border-t border-slate-100 hover:bg-slate-50">
+                            <td className="px-3 py-2 text-slate-800">{r.profile_username || '-'}</td>
+                            <td className="px-3 py-2 text-slate-600 font-mono text-xs">{r.profile_cup_id || '-'}</td>
+                            <td className="px-3 py-2 font-mono text-indigo-600">{r.verify_code}</td>
+                            <td className="px-3 py-2">
+                              <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${r.card_status === 'used' ? 'bg-green-100 text-green-700' : r.card_status === 'expired' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                {r.card_status === 'used' ? '已核销' : r.card_status === 'expired' ? '已过期' : '未使用'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-slate-500 text-xs">{r.card_created_at ? new Date(r.card_created_at).toLocaleString('zh-CN') : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 mt-8">
               <button
                 type="button"
