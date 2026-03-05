@@ -7,6 +7,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { PartnerAuthProvider } from './context/PartnerAuthContext'
 import PartnerLogin from './pages/PartnerLogin'
+import PartnerDashboard from './pages/PartnerDashboard'
 import PartnerCreateActivity from './pages/PartnerCreateActivity'
 import AdminDashboard from './pages/AdminDashboard'
 import AuditActivities from './pages/AuditActivities'
@@ -25,6 +26,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/partner/login" element={<PartnerLogin />} />
+          <Route path="/partner/dashboard" element={<PartnerDashboard />} />
           <Route path="/partner/create-activity" element={<PartnerCreateActivity />} />
           <Route path="/admin/audit-activities" element={<AuditActivities />} />
           <Route path="/" element={<RootRedirect />} />

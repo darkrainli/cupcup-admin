@@ -1,0 +1,245 @@
+/**
+ * 商户仪表盘：展示当前门店信息、到店转化等概览模块，
+ * 「新建黑卡专属活动」作为一个 App 卡片入口，点击进入活动发布页。
+ */
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate, Navigate } from 'react-router-dom'
+import { Wine, MapPin, Phone, PieChart, Hash, Loader2 } from 'lucide-react'
+import { usePartnerAuth } from '../context/PartnerAuthContext'
+import { memFire } from '../context/PartnerAuthContext'
+
+// 到店转化饼图，与 PartnerCreateActivity 中保持视觉一致
+function PieChartSvg({ totalSlots, actualVisit }) {
+  const r = 40
+  const cx = 50
+  const cy = 50
+  const ratio = totalSlots > 0 ? Math.min(1, actualVisit / totalSlots) : 0
+  const angle1 = ratio * 360
+  const toRad = (deg) => (deg - 90) * (Math.PI / 180)
+  const point = (deg) => ({ x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) })
+  const large = (a, b) => (b - a > 180 ? 1 : 0)
+  const path1 = angle1 > 0
+    ? `M ${cx} ${cy} L ${point(0).x} ${point(0).y} A ${r} ${r} 0 ${large(0, angle1)} 1 ${point(angle1).x} ${point(angle1).y} Z`
+    : ''
+  const path2 = angle1 < 360
+    ? `M ${cx} ${cy} L ${point(angle1).x} ${point(angle1).y} A ${r} ${r} 0 ${large(angle1, 360)} 1 ${point(360).x} ${point(360).y} Z`
+    : ''
+  return (
+    <svg width={100} height={100} viewBox="0 0 100 100" className="shrink-0">
+      <path d={path1} fill="#6366f1" stroke="#fff" strokeWidth={2} />
+      <path d={path2} fill="#e2e8f0" stroke="#fff" strokeWidth={2} />
+    </svg>
+  )
+}
+
+export default function PartnerDashboard() {
+  const navigate = useNavigate()
+  const { barId, barInfo, loading: authLoading, refreshBarInfo, isPartnerLoggedIn, logout } = usePartnerAuth()
+
+  const [barDisplay, setBarDisplay] = useState(null)
+  const [activitiesList, setActivitiesList] = useState([])
+  const [activitiesLoading, setActivitiesLoading] = useState(false)
+
+  // 未登录商户则跳转登录
+  if (!authLoading && !isPartnerLoggedIn) {
+    return <Navigate to="/partner/login" replace />
+  }
+
+  // 初始化门店信息
+  useEffect(() => {
+    if (!barId || !barInfo) return
+    setBarDisplay(barInfo)
+  }, [barId, barInfo])
+
+  useEffect(() => {
+    if (barId) refreshBarInfo()
+  }, [barId, refreshBarInfo])
+
+  const fetchActivitiesList = useCallback(async () => {
+    if (!barId) return
+    setActivitiesLoading(true)
+    const { data, error } = await memFire
+      .from('bar_events')
+      .select('id, title, cover_image_url, status, created_at, reject_reason, max_participants, actual_verified_count')
+      .eq('bar_id', barId)
+      .order('created_at', { ascending: false })
+    setActivitiesLoading(false)
+    if (!error && data) setActivitiesList(data)
+    else setActivitiesList([])
+  }, [barId])
+
+  useEffect(() => {
+    if (barId) fetchActivitiesList()
+  }, [barId, fetchActivitiesList])
+
+  // 审核通过活动的总名额与实际到店人数
+  const pieStats = (() => {
+    const approved = activitiesList.filter((a) => a.status === 'approved')
+    const totalSlots = approved.reduce((s, a) => s + (Number(a.max_participants) || 0), 0)
+    const actualVisit = approved.reduce((s, a) => s + (Number(a.actual_verified_count) || 0), 0)
+    return { totalSlots, actualVisit }
+  })()
+
+  const recentActivities = activitiesList.slice(0, 5)
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* 顶部导航 */}
+      <nav className="bg-white border-b px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="bg-indigo-600 p-2 rounded-xl text-white"><Wine size={24} /></div>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black text-slate-800 tracking-tight">CupWorld Partner</h1>
+            <p className="text-xs font-semibold text-slate-400">商户仪表盘</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/partner/create-activity')}
+            className="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm"
+          >
+            <Hash size={14} /> 黑卡专属活动
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await logout()
+              window.location.href = '/partner/login'
+            }}
+            className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full"
+          >
+            退出登录
+          </button>
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {/* 上半部分：当前门店 + 到店转化 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4 lg:col-span-2">
+            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-2">
+              <Wine size={14} /> 当前门店
+            </h2>
+            {barDisplay ? (
+              <div className="flex flex-col sm:flex-row gap-4">
+                {barDisplay.cover_image_url ? (
+                  <img
+                    src={barDisplay.cover_image_url}
+                    alt=""
+                    className="w-20 h-20 rounded-xl object-cover border border-slate-100"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
+                    <Wine size={28} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="font-black text-slate-800 truncate">{barDisplay.name || '未命名门店'}</p>
+                  {!!barDisplay.address && (
+                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <MapPin size={14} /> {barDisplay.address}
+                    </p>
+                  )}
+                  {!!barDisplay.contact_phone && (
+                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <Phone size={14} /> {barDisplay.contact_phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center text-slate-400 text-sm">
+                {authLoading ? '加载门店信息中…' : '尚未绑定门店，请联系管理员创建商户账号'}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex items-center gap-4">
+            <div className="flex-1 space-y-1">
+              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <PieChart size={15} className="text-indigo-600" /> 到店转化
+              </h2>
+              <p className="text-2xl font-black text-slate-800">
+                {pieStats.totalSlots > 0
+                  ? `${Math.round((pieStats.actualVisit / pieStats.totalSlots) * 100)}%`
+                  : '--'}
+              </p>
+              <p className="text-xs text-slate-500">
+                已核销 {pieStats.actualVisit} / 发出名额 {pieStats.totalSlots}
+              </p>
+            </div>
+            <PieChartSvg totalSlots={pieStats.totalSlots} actualVisit={pieStats.actualVisit} />
+          </div>
+        </div>
+
+        {/* 中间：小应用区 */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <button
+            type="button"
+            onClick={() => navigate('/partner/create-activity')}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col items-start gap-3 hover:border-indigo-500 hover:shadow-md transition-all text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Hash size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-800">黑卡专属活动</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                新建并管理黑卡专属线下活动，系统会自动为符合条件的黑卡用户发放 CupSSR 邀请卡。
+              </p>
+            </div>
+          </button>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-2 md:col-span-2">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                <PieChart size={14} /> 最近活动概览
+              </h3>
+              {activitiesLoading && (
+                <span className="flex items-center gap-1 text-xs text-slate-400">
+                  <Loader2 size={12} className="animate-spin" /> 刷新中…
+                </span>
+              )}
+            </div>
+            {recentActivities.length === 0 ? (
+              <p className="text-xs text-slate-400">
+                还没有创建过黑卡专属活动，点击左侧「黑卡专属活动」开始创建你的第一场活动吧。
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {recentActivities.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-3 text-xs text-slate-600 bg-slate-50/60 rounded-xl px-3 py-2"
+                  >
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        a.status === 'approved'
+                          ? 'bg-emerald-50 text-emerald-600'
+                          : a.status === 'rejected'
+                          ? 'bg-red-50 text-red-500'
+                          : 'bg-amber-50 text-amber-600'
+                      }`}
+                    >
+                      {a.status === 'approved'
+                        ? '已发布'
+                        : a.status === 'rejected'
+                        ? '已驳回'
+                        : '待审核'}
+                    </span>
+                    <span className="truncate flex-1">{a.title || '未命名活动'}</span>
+                    <span className="text-slate-400">
+                      {Number(a.actual_verified_count) || 0} / {Number(a.max_participants) || 0} 人到店
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
+

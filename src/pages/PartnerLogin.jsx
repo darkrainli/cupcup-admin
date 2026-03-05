@@ -16,7 +16,7 @@ export default function PartnerLogin() {
 
   // 已登录且已有 bar_id 则直接进发布页
   if (isPartnerLoggedIn) {
-    return <Navigate to="/partner/create-activity" replace />
+    return <Navigate to="/partner/dashboard" replace />
   }
 
   const handleSubmit = async (e) => {
@@ -25,7 +25,7 @@ export default function PartnerLogin() {
     setSubmitting(true)
     try {
       await login(email.trim(), password)
-      navigate('/partner/create-activity', { replace: true })
+      navigate('/partner/dashboard', { replace: true })
     } catch (err) {
       setError(err?.message || '登录失败，请检查邮箱与密码')
     } finally {
