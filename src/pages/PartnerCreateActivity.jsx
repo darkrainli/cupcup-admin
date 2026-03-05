@@ -362,7 +362,8 @@ export default function PartnerCreateActivity() {
             type="button"
             onClick={async () => {
               await logout()
-              navigate('/partner/login', { replace: true })
+              // 使用整页跳转避免 React 在注销后因 Hook 顺序变更报错 (#300)，并确保退出后总是回到登录页
+              window.location.href = '/partner/login'
             }}
             className="text-sm font-bold text-slate-500 hover:text-red-500"
           >
