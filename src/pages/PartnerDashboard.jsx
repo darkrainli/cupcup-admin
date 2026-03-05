@@ -4,7 +4,7 @@
  */
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Wine, MapPin, Phone, PieChart, Hash, Loader2 } from 'lucide-react'
+import { Wine, MapPin, Phone, PieChart, Hash, Loader2, UserCheck } from 'lucide-react'
 import { usePartnerAuth } from '../context/PartnerAuthContext'
 import { memFire } from '../context/PartnerAuthContext'
 
@@ -39,6 +39,8 @@ export default function PartnerDashboard() {
   const [barDisplay, setBarDisplay] = useState(null)
   const [activitiesList, setActivitiesList] = useState([])
   const [activitiesLoading, setActivitiesLoading] = useState(false)
+  const [checkInCount, setCheckInCount] = useState(null)
+  const [checkInCountLoading, setCheckInCountLoading] = useState(false)
 
   // 未登录商户则跳转登录
   if (!authLoading && !isPartnerLoggedIn) {
@@ -71,6 +73,20 @@ export default function PartnerDashboard() {
   useEffect(() => {
     if (barId) fetchActivitiesList()
   }, [barId, fetchActivitiesList])
+
+  const fetchCheckInCount = useCallback(async () => {
+    if (!barId || !barInfo?.name) return
+    setCheckInCountLoading(true)
+    const { data, error } = await memFire.rpc('get_bar_checkin_count', { p_bar_name: barInfo.name })
+    setCheckInCountLoading(false)
+    if (!error && typeof data === 'number') setCheckInCount(data)
+    else if (!error && data != null) setCheckInCount(Number(data) || 0)
+    else setCheckInCount(0)
+  }, [barId, barInfo?.name])
+
+  useEffect(() => {
+    if (barId && barInfo?.name) fetchCheckInCount()
+  }, [barId, barInfo?.name, fetchCheckInCount])
 
   // 审核通过活动的总名额与实际到店人数
   const pieStats = (() => {
@@ -115,8 +131,8 @@ export default function PartnerDashboard() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {/* 上半部分：当前门店 + 到店转化 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 上半部分：当前门店 + 到店转化 + 本店打卡人数 */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4 lg:col-span-2">
             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-2">
               <Wine size={14} /> 当前门店
@@ -152,6 +168,27 @@ export default function PartnerDashboard() {
               <div className="flex items-center justify-center text-slate-400 text-sm">
                 {authLoading ? '加载门店信息中…' : '尚未绑定门店，请联系管理员创建商户账号'}
               </div>
+            )}
+          </div>
+
+          {/* 本店打卡人数：放在第二格，紧跟当前门店，确保可见 */}
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-emerald-200 p-6 flex flex-col justify-center gap-1">
+            <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <UserCheck size={15} className="text-emerald-600" /> 本店打卡人数
+            </h2>
+            {checkInCountLoading ? (
+              <span className="flex items-center gap-1 text-slate-400">
+                <Loader2 size={18} className="animate-spin" /> 加载中…
+              </span>
+            ) : (
+              <>
+                <p className="text-2xl font-black text-slate-800">
+                  {checkInCount != null ? checkInCount : '--'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  在本店 NFC 打卡的用户数
+                </p>
+              </>
             )}
           </div>
 
