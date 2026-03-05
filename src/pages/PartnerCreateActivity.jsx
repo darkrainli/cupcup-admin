@@ -81,6 +81,7 @@ export default function PartnerCreateActivity() {
   const [contactPhone, setContactPhone] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [targetOwnBarOnly, setTargetOwnBarOnly] = useState(false) // 是否仅定向到本店的黑卡用户
 
   // 裁切弹窗
   const [cropModal, setCropModal] = useState({ show: false, image: null })
@@ -239,6 +240,7 @@ export default function PartnerCreateActivity() {
         title: title.trim().slice(0, TITLE_MAX),
         content: (content.trim().slice(0, CONTENT_MAX) || ''),
         target_black_card_count: targetBlackCardCount,
+        target_own_bar_only: targetOwnBarOnly,
         start_time: new Date(startTime).toISOString(),
         end_time: new Date(endTime).toISOString(),
         address: address.trim(),
@@ -566,6 +568,25 @@ export default function PartnerCreateActivity() {
                 placeholder="例如：周末黑卡专属半价"
               />
               <p className="mt-1 text-right text-xs font-bold text-slate-400">{title.length}/{TITLE_MAX}</p>
+            </div>
+
+            {/* 是否定向到本店 */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-slate-600">是否定向到本店</span>
+                <span className="text-xs text-slate-500 mt-0.5">
+                  仅给「在本店打出黑卡」的用户发 CupSSR 邀请卡
+                </span>
+              </div>
+              <label className="inline-flex items-center gap-2 text-xs text-slate-500">
+                <input
+                  type="checkbox"
+                  checked={targetOwnBarOnly}
+                  onChange={(e) => setTargetOwnBarOnly(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>{targetOwnBarOnly ? '仅本店' : '全局黑卡池'}</span>
+              </label>
             </div>
 
             {/* 黑卡数量 3-15 */}
