@@ -3,12 +3,9 @@
  * 登录：用邮箱+密码与 bars 表的 owner_email / owner_password 校验，通过则缓存 bar_id / barInfo
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { memFire } from '../lib/memfire'
 
-const MEMFIRE_URL = import.meta.env.VITE_MEMFIRE_URL || 'https://d647ojgg91hgk1gnpfqg.baseapi.memfiredb.com'
-const MEMFIRE_ANON_KEY = import.meta.env.VITE_MEMFIRE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImV4cCI6MzM0NzM1MjM5OCwiaWF0IjoxNzcwNTUyMzk4LCJpc3MiOiJzdXBhYmFzZSJ9.jWRdDqRdG9hx0UCDtHdM6xmUmmALuxFaQoaaLbIpmmU'
-
-export const memFire = createClient(MEMFIRE_URL, MEMFIRE_ANON_KEY)
+export { memFire }
 
 const STORAGE_BAR_ID = 'partner_bar_id'
 const STORAGE_BAR_INFO = 'partner_bar_info'

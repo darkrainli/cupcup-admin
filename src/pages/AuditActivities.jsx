@@ -3,12 +3,8 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { createClient } from '@supabase/supabase-js'
+import { memFire } from '../lib/memfire'
 import { Loader2, CheckCircle2, XCircle, ArrowLeft, FileText, Calendar, X, AlertCircle, Users } from 'lucide-react'
-
-const MEMFIRE_URL = import.meta.env.VITE_MEMFIRE_URL || 'https://d647ojgg91hgk1gnpfqg.baseapi.memfiredb.com'
-const MEMFIRE_ANON_KEY = import.meta.env.VITE_MEMFIRE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImV4cCI6MzM0NzM1MjM5OCwiaWF0IjoxNzcwNTUyMzk4LCJpc3MiOiJzdXBhYmFzZSJ9.jWRdDqRdG9hx0UCDtHdM6xmUmmALuxFaQoaaLbIpmmU'
-const memFire = createClient(MEMFIRE_URL, MEMFIRE_ANON_KEY)
 
 export default function AuditActivities() {
   const [list, setList] = useState([])

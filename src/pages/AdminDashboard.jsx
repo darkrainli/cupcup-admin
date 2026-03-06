@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
-import { memFire } from '../context/PartnerAuthContext'
+import { memFire } from '../lib/memfire'
 
 function moveItem(arr, fromIndex, toIndex) {
   const copy = [...arr]
@@ -200,14 +200,17 @@ function AdminDashboard() {
   const fetchBars = async () => {
     setLoading(true)
     try {
-      const { data, error } = await memFire
-        .from('bars')
-        .select('*')
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      setBars(data || [])
+      let query = memFire.from('bars').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false })
+      let { data, error } = await query
+      if (error && (error.code === '42703' || (error.message && error.message.includes('sort_order')))) {
+        query = memFire.from('bars').select('*').order('created_at', { ascending: false })
+        const retry = await query
+        if (retry.error) throw retry.error
+        setBars(retry.data || [])
+      } else {
+        if (error) throw error
+        setBars(data || [])
+      }
     } catch (error) {
       console.error('Error fetching bars:', error)
       alert('获取酒吧列表失败，请检查网络连接')
@@ -236,7 +239,10 @@ function AdminDashboard() {
       ))
     } catch (err) {
       console.error('保存酒吧顺序失败:', err)
-      alert('保存顺序失败，请重试')
+      const msg = err?.code === '42703' || (err?.message && err.message.includes('sort_order'))
+        ? '保存顺序失败：数据库尚未添加 sort_order 字段。请在 MemFire 控制台执行 sql/partner_admin_bars_sort_order.sql 中的 SQL 后再试。'
+        : '保存顺序失败，请重试'
+      alert(msg)
       fetchBars()
     } finally {
       setBarsSavingOrder(false)
