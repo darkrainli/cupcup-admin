@@ -46,18 +46,20 @@ function PhotoItem({ item, isFirst, index, onRemove, onDragStart, onDragOver, on
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver?.(e, index); }}
       onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain'), 10); if (from !== index) onDrop?.(from, index); }}
       onDragEnd={() => onDragStart?.(null)}
-      className={`relative aspect-square group rounded-xl overflow-hidden border cursor-grab active:cursor-grabbing ${isDragging ? 'z-10 shadow-xl ring-2 ring-indigo-400 opacity-80' : 'border-slate-200'}`}
+      className={`relative aspect-square group rounded-xl border cursor-grab active:cursor-grabbing overflow-visible ${isDragging ? 'z-10 shadow-xl ring-2 ring-indigo-400 opacity-80' : 'border-slate-200'}`}
     >
-      <img src={src} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
-      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-        <span className="p-2 rounded-full bg-white/90 text-slate-700"><GripVertical size={20} /></span>
+      <div className="absolute inset-0 rounded-xl overflow-hidden">
+        <img src={src} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <span className="p-2 rounded-full bg-white/90 text-slate-700"><GripVertical size={20} /></span>
+        </div>
+        {isFirst && (
+          <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-black text-center py-1 rounded-b-xl">封面图</div>
+        )}
       </div>
-      <button type="button" onClick={() => onRemove(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      <button type="button" onClick={() => onRemove(index)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 min-w-[24px] min-h-[24px] flex items-center justify-center">
         <X size={12} />
       </button>
-      {isFirst && (
-        <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-black text-center py-1 rounded-b-xl">封面图</div>
-      )}
     </div>
   )
 }
