@@ -3,23 +3,13 @@ import { Link } from 'react-router-dom'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../context/PartnerAuthContext'
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  horizontalListSortingStrategy,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+
+function moveItem(arr, fromIndex, toIndex) {
+  const copy = [...arr]
+  const [removed] = copy.splice(fromIndex, 1)
+  copy.splice(toIndex, 0, removed)
+  return copy
+}
 
 // CupCup 酒吧管理后台：对接 MemFire（与 PartnerAuthContext 共用同一客户端，避免多实例）
 // 登录账号：cupadmin  密码：cup9898
@@ -46,24 +36,23 @@ const SHOP_CATEGORIES = [
 ]
 const ALL_CATEGORY_ITEMS = SHOP_CATEGORIES.flatMap(c => c.items)
 
-// 单张店铺照片的可拖拽项（用于修改店铺信息内的照片顺序）
-function SortablePhotoItem({ id, item, isFirst, index, onRemove }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-  const style = { transform: CSS.Transform.toString(transform), transition }
+// 单张店铺照片（原生 HTML5 拖拽排序）
+function PhotoItem({ item, isFirst, index, onRemove, onDragStart, onDragOver, onDrop, isDragging }) {
   const src = item.type === 'existing' ? item.url : item.previewUrl
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`relative aspect-square group rounded-xl overflow-hidden border ${isDragging ? 'z-10 shadow-xl ring-2 ring-indigo-400' : 'border-slate-200'}`}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; onDragStart?.(index); }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver?.(e, index); }}
+      onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain'), 10); if (from !== index) onDrop?.(from, index); }}
+      onDragEnd={() => onDragStart?.(null)}
+      className={`relative aspect-square group rounded-xl overflow-hidden border cursor-grab active:cursor-grabbing ${isDragging ? 'z-10 shadow-xl ring-2 ring-indigo-400 opacity-80' : 'border-slate-200'}`}
     >
-      <img src={src} alt="" className="w-full h-full object-cover" />
-      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button type="button" className="p-2 rounded-full bg-white/90 text-slate-700 touch-none" {...attributes} {...listeners}>
-          <GripVertical size={20} />
-        </button>
+      <img src={src} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <span className="p-2 rounded-full bg-white/90 text-slate-700"><GripVertical size={20} /></span>
       </div>
-      <button type="button" onClick={() => onRemove(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+      <button type="button" onClick={() => onRemove(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <X size={12} />
       </button>
       {isFirst && (
@@ -73,20 +62,21 @@ function SortablePhotoItem({ id, item, isFirst, index, onRemove }) {
   )
 }
 
-// 已发布酒吧列表中的可拖拽行（列表形式，拖拽调整顺序）
-function SortableBarRow({ bar, isEditing, formName, formCategory, formAddress, coverPreviewUrl, onEdit, onDelete, onPartnerAccount }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: bar.id })
-  const style = { transform: CSS.Transform.toString(transform), transition }
+// 已发布酒吧列表行（原生 HTML5 拖拽排序）
+function BarRow({ bar, isEditing, formName, formCategory, formAddress, coverPreviewUrl, onEdit, onDelete, onPartnerAccount, index, onDragStart, onDragOver, onDrop, isDragging }) {
   const coverUrl = isEditing ? coverPreviewUrl : (bar.cover_image_url || bar.image_name)
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-4 p-4 rounded-2xl border bg-white transition-all ${isDragging ? 'shadow-xl ring-2 ring-indigo-400 z-10' : 'border-slate-100'} ${isEditing ? 'border-indigo-400 ring-2 ring-indigo-50' : ''}`}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; onDragStart?.(index); }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver?.(e, index); }}
+      onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain'), 10); if (from !== index) onDrop?.(from, index); }}
+      onDragEnd={() => onDragStart?.(null)}
+      className={`flex items-center gap-4 p-4 rounded-2xl border bg-white transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'shadow-xl ring-2 ring-indigo-400 z-10 opacity-80' : 'border-slate-100'} ${isEditing ? 'border-indigo-400 ring-2 ring-indigo-50' : ''}`}
     >
-      <button type="button" className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 touch-none shrink-0" {...attributes} {...listeners} title="拖拽调整顺序">
+      <span className="p-2 rounded-xl text-slate-400 shrink-0 pointer-events-none" title="拖拽调整顺序">
         <GripVertical size={20} />
-      </button>
+      </span>
       <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
         {coverUrl ? <img src={coverUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Wine size={24} className="text-slate-300" /></div>}
       </div>
@@ -226,29 +216,19 @@ function AdminDashboard() {
     }
   }
 
-  const sensors = useSensors(
-    useSensor(PointerSensor({ activationConstraint: { distance: 8 } })),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  const handlePhotoDragEnd = (event) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = photoItems.findIndex((_, i) => `photo-${i}` === active.id)
-    const newIndex = photoItems.findIndex((_, i) => `photo-${i}` === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-    setPhotoItems(arrayMove(photoItems, oldIndex, newIndex))
-  }
-
+  const [photoDragIndex, setPhotoDragIndex] = useState(null)
+  const [barDragIndex, setBarDragIndex] = useState(null)
   const [barsSavingOrder, setBarsSavingOrder] = useState(false)
-  const handleBarDragEnd = async (event) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = bars.findIndex(b => b.id === active.id)
-    const newIndex = bars.findIndex(b => b.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-    const newBars = arrayMove(bars, oldIndex, newIndex)
+
+  const handlePhotoDrop = useCallback((fromIndex, toIndex) => {
+    setPhotoItems((prev) => moveItem(prev, fromIndex, toIndex))
+    setPhotoDragIndex(null)
+  }, [])
+
+  const handleBarDrop = useCallback(async (fromIndex, toIndex) => {
+    const newBars = moveItem(bars, fromIndex, toIndex)
     setBars(newBars)
+    setBarDragIndex(null)
     setBarsSavingOrder(true)
     try {
       await Promise.all(newBars.map((bar, i) =>
@@ -261,7 +241,7 @@ function AdminDashboard() {
     } finally {
       setBarsSavingOrder(false)
     }
-  }
+  }, [bars])
 
   // 1. 处理原始图片选择 -> 触发裁剪
   const handleFileChange = (e) => {
@@ -759,29 +739,27 @@ function AdminDashboard() {
 
               <div>
                 <label className="block text-sm font-bold text-slate-500 mb-3">店铺照片 (最多 5 张，可拖拽调整顺序，第一张为封面图)</label>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
-                  <SortableContext items={photoItems.map((_, i) => `photo-${i}`)} strategy={horizontalListSortingStrategy}>
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                      {photoItems.map((item, idx) => (
-                        <SortablePhotoItem
-                          key={`photo-${idx}`}
-                          id={`photo-${idx}`}
-                          item={item}
-                          index={idx}
-                          isFirst={idx === 0}
-                          onRemove={removeFile}
-                        />
-                      ))}
-                      {photoItems.length < 5 && (
-                        <label className="cursor-pointer aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50 transition-all text-slate-400">
-                          <Plus size={24} />
-                          <span className="text-[10px] font-bold mt-1">添加照片</span>
-                          <input type="file" hidden accept="image/*" onChange={handleFileChange} />
-                        </label>
-                      )}
-                    </div>
-                  </SortableContext>
-                </DndContext>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {photoItems.map((item, idx) => (
+                    <PhotoItem
+                      key={`photo-${idx}`}
+                      item={item}
+                      index={idx}
+                      isFirst={idx === 0}
+                      onRemove={removeFile}
+                      onDragStart={setPhotoDragIndex}
+                      onDrop={handlePhotoDrop}
+                      isDragging={photoDragIndex === idx}
+                    />
+                  ))}
+                  {photoItems.length < 5 && (
+                    <label className="cursor-pointer aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50 transition-all text-slate-400">
+                      <Plus size={24} />
+                      <span className="text-[10px] font-bold mt-1">添加照片</span>
+                      <input type="file" hidden accept="image/*" onChange={handleFileChange} />
+                    </label>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -815,26 +793,26 @@ function AdminDashboard() {
               <AlertCircle className="mx-auto mb-2" /> 还没有录入过酒吧，快从左侧开始吧！
             </div>
           ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleBarDragEnd}>
-              <SortableContext items={bars.map(b => b.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-3">
-                  {bars.map(bar => (
-                    <SortableBarRow
-                      key={bar.id}
-                      bar={bar}
-                      isEditing={editingId === bar.id}
-                      formName={formData.name}
-                      formCategory={formData.category}
-                      formAddress={formData.address}
-                      coverPreviewUrl={photoItems[0] ? (photoItems[0].type === 'existing' ? photoItems[0].url : photoItems[0].previewUrl) : (bar.cover_image_url || bar.image_name)}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onPartnerAccount={openPartnerAccountModal}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <div className="space-y-3">
+              {bars.map((bar, index) => (
+                <BarRow
+                  key={bar.id}
+                  bar={bar}
+                  index={index}
+                  isEditing={editingId === bar.id}
+                  formName={formData.name}
+                  formCategory={formData.category}
+                  formAddress={formData.address}
+                  coverPreviewUrl={photoItems[0] ? (photoItems[0].type === 'existing' ? photoItems[0].url : photoItems[0].previewUrl) : (bar.cover_image_url || bar.image_name)}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onPartnerAccount={openPartnerAccountModal}
+                  onDragStart={setBarDragIndex}
+                  onDrop={handleBarDrop}
+                  isDragging={barDragIndex === index}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>
