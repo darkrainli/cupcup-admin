@@ -3,7 +3,6 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import Cropper from 'react-easy-crop'
 import imageCompression from 'browser-image-compression'
 import {
   Wine, Loader2, Image as ImageIcon, Scissors, MapPin, Phone, Calendar,
@@ -88,6 +87,12 @@ export default function PartnerCreateActivity() {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [CropperComponent, setCropperComponent] = useState(null)
+  useEffect(() => {
+    if (cropModal.show && !CropperComponent) {
+      import('react-easy-crop').then((m) => setCropperComponent(() => m.default))
+    }
+  }, [cropModal.show])
 
   // 已提交的活动列表（用于展示与审核状态）
   const [activitiesList, setActivitiesList] = useState([])
@@ -287,7 +292,6 @@ export default function PartnerCreateActivity() {
           style={{
             display: 'grid',
             gridTemplateRows: '1fr auto',
-            height: '100vh',
             height: '100dvh'
           }}
         >
@@ -297,15 +301,21 @@ export default function PartnerCreateActivity() {
               className="bg-slate-800 rounded-2xl overflow-hidden shrink-0"
               style={{ width: 'min(400px, 65vmin)', height: 'min(400px, 65vmin)' }}
             >
-              <Cropper
-                image={cropModal.image}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
+              {CropperComponent ? (
+                <CropperComponent
+                  image={cropModal.image}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white">
+                  <Loader2 className="animate-spin" size={32} />
+                </div>
+              )}
             </div>
           </div>
           {/* 下：操作栏，独立一行、保证露出且可点（避免被裁切层遮挡） */}

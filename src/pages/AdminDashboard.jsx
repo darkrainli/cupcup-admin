@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { createClient } from '@supabase/supabase-js'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical } from 'lucide-react'
-import Cropper from 'react-easy-crop'
 import imageCompression from 'browser-image-compression'
+import { memFire } from '../context/PartnerAuthContext'
 import {
   DndContext,
   closestCenter,
@@ -22,12 +21,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-// CupCup 酒吧管理后台：对接 MemFire（CupStation 店铺数据）
+// CupCup 酒吧管理后台：对接 MemFire（与 PartnerAuthContext 共用同一客户端，避免多实例）
 // 登录账号：cupadmin  密码：cup9898
 // 接口：bars 表、collected_cards 表、Storage 桶 cup-images（bar-details）
-const MEMFIRE_URL = import.meta.env.VITE_MEMFIRE_URL || "https://d647ojgg91hgk1gnpfqg.baseapi.memfiredb.com"
-const MEMFIRE_ANON_KEY = import.meta.env.VITE_MEMFIRE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImV4cCI6MzM0NzM1MjM5OCwiaWF0IjoxNzcwNTUyMzk4LCJpc3MiOiJzdXBhYmFzZSJ9.jWRdDqRdG9hx0UCDtHdM6xmUmmALuxFaQoaaLbIpmmU"
-const memFire = createClient(MEMFIRE_URL, MEMFIRE_ANON_KEY)
 
 // 店面分类：四大类及其子项（下拉先选大类，再选子项）
 const SHOP_CATEGORIES = [
@@ -181,6 +177,14 @@ function AdminDashboard() {
   const [partnerPassword, setPartnerPassword] = useState('')
   const [partnerSubmitting, setPartnerSubmitting] = useState(false)
   const [partnerError, setPartnerError] = useState('')
+
+  // 裁剪组件：仅打开弹窗时动态加载，避免主包中 react-easy-crop 的 class 导致线上白屏
+  const [CropperComponent, setCropperComponent] = useState(null)
+  useEffect(() => {
+    if (cropModal.show && !CropperComponent) {
+      import('react-easy-crop').then((m) => setCropperComponent(() => m.default))
+    }
+  }, [cropModal.show])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -554,15 +558,21 @@ function AdminDashboard() {
       {cropModal.show && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-6">
           <div className="relative w-full max-w-xl aspect-square bg-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-            <Cropper
-              image={cropModal.image}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-            />
+            {CropperComponent ? (
+              <CropperComponent
+                image={cropModal.image}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-white">
+                <Loader2 className="animate-spin" size={32} />
+              </div>
+            )}
           </div>
           <div className="mt-8 w-full max-w-xl flex items-center gap-6">
             <input type="range" value={zoom} min={1} max={3} step={0.1} 
