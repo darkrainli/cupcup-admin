@@ -1,9 +1,26 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
-import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus } from 'lucide-react'
+import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical } from 'lucide-react'
 import Cropper from 'react-easy-crop'
 import imageCompression from 'browser-image-compression'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  horizontalListSortingStrategy,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 // CupCup 酒吧管理后台：对接 MemFire（CupStation 店铺数据）
 // 登录账号：cupadmin  密码：cup9898
@@ -32,6 +49,70 @@ const SHOP_CATEGORIES = [
   }
 ]
 const ALL_CATEGORY_ITEMS = SHOP_CATEGORIES.flatMap(c => c.items)
+
+// 单张店铺照片的可拖拽项（用于修改店铺信息内的照片顺序）
+function SortablePhotoItem({ id, item, isFirst, index, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  const src = item.type === 'existing' ? item.url : item.previewUrl
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative aspect-square group rounded-xl overflow-hidden border ${isDragging ? 'z-10 shadow-xl ring-2 ring-indigo-400' : 'border-slate-200'}`}
+    >
+      <img src={src} alt="" className="w-full h-full object-cover" />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button type="button" className="p-2 rounded-full bg-white/90 text-slate-700 touch-none" {...attributes} {...listeners}>
+          <GripVertical size={20} />
+        </button>
+      </div>
+      <button type="button" onClick={() => onRemove(index)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+        <X size={12} />
+      </button>
+      {isFirst && (
+        <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-black text-center py-1 rounded-b-xl">封面图</div>
+      )}
+    </div>
+  )
+}
+
+// 已发布酒吧列表中的可拖拽行（列表形式，拖拽调整顺序）
+function SortableBarRow({ bar, isEditing, formName, formCategory, formAddress, coverPreviewUrl, onEdit, onDelete, onPartnerAccount }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: bar.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  const coverUrl = isEditing ? coverPreviewUrl : (bar.cover_image_url || bar.image_name)
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-4 p-4 rounded-2xl border bg-white transition-all ${isDragging ? 'shadow-xl ring-2 ring-indigo-400 z-10' : 'border-slate-100'} ${isEditing ? 'border-indigo-400 ring-2 ring-indigo-50' : ''}`}
+    >
+      <button type="button" className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 touch-none shrink-0" {...attributes} {...listeners} title="拖拽调整顺序">
+        <GripVertical size={20} />
+      </button>
+      <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
+        {coverUrl ? <img src={coverUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Wine size={24} className="text-slate-300" /></div>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-black text-slate-800 truncate">{isEditing ? formName : bar.name}</h3>
+        <p className="text-xs text-slate-500 truncate">{isEditing ? formCategory : bar.category}</p>
+        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {isEditing ? formAddress : bar.address}</p>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <button type="button" onClick={() => onPartnerAccount(bar)} className="bg-slate-100 text-emerald-600 p-2 rounded-xl hover:bg-emerald-50 transition-colors" title="生成/重置商户账号">
+          <UserPlus size={16} />
+        </button>
+        <button type="button" onClick={() => onEdit(bar)} className="bg-slate-100 text-indigo-600 p-2 rounded-xl hover:bg-indigo-50 transition-colors">
+          <Edit2 size={16} />
+        </button>
+        <button type="button" onClick={() => onDelete(bar.id)} className="bg-red-500 text-white p-2 rounded-xl hover:bg-red-600 transition-colors">
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // 辅助函数：将裁剪后的区域转为 File 对象
 async function getCroppedImg(imageSrc, pixelCrop) {
@@ -88,15 +169,11 @@ function AdminDashboard() {
     address: '',
     latitude: '', 
     longitude: '', 
-    description: '',
-    imageFiles: [] 
+    description: ''
   })
 
-  // 预览状态
-  const [previews, setPreviews] = useState({ 
-    images: [], 
-    existingImages: [] 
-  })
+  // 店铺照片：统一列表，支持拖拽排序。项为 { type: 'existing', url } | { type: 'new', file, previewUrl }
+  const [photoItems, setPhotoItems] = useState([])
 
   // 生成/重置商户账号弹窗
   const [partnerAccountModal, setPartnerAccountModal] = useState({ show: false, bar: null })
@@ -132,6 +209,7 @@ function AdminDashboard() {
       const { data, error } = await memFire
         .from('bars')
         .select('*')
+        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false })
       
       if (error) throw error
@@ -144,12 +222,49 @@ function AdminDashboard() {
     }
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor({ activationConstraint: { distance: 8 } })),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handlePhotoDragEnd = (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = photoItems.findIndex((_, i) => `photo-${i}` === active.id)
+    const newIndex = photoItems.findIndex((_, i) => `photo-${i}` === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    setPhotoItems(arrayMove(photoItems, oldIndex, newIndex))
+  }
+
+  const [barsSavingOrder, setBarsSavingOrder] = useState(false)
+  const handleBarDragEnd = async (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = bars.findIndex(b => b.id === active.id)
+    const newIndex = bars.findIndex(b => b.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const newBars = arrayMove(bars, oldIndex, newIndex)
+    setBars(newBars)
+    setBarsSavingOrder(true)
+    try {
+      await Promise.all(newBars.map((bar, i) =>
+        memFire.from('bars').update({ sort_order: i }).eq('id', bar.id)
+      ))
+    } catch (err) {
+      console.error('保存酒吧顺序失败:', err)
+      alert('保存顺序失败，请重试')
+      fetchBars()
+    } finally {
+      setBarsSavingOrder(false)
+    }
+  }
+
   // 1. 处理原始图片选择 -> 触发裁剪
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
 
-    if (formData.imageFiles.length + previews.existingImages.length >= 5) {
+    if (photoItems.length >= 5) {
       return alert('最多只能上传 5 张照片')
     }
 
@@ -181,11 +296,8 @@ function AdminDashboard() {
       file = await imageCompression(file, options)
       console.log('✅ 压缩后:', (file.size / 1024).toFixed(2), 'KB')
 
-      const updatedFiles = [...formData.imageFiles, file]
-      const updatedPreviews = [...previews.images, URL.createObjectURL(file)]
-      
-      setFormData({ ...formData, imageFiles: updatedFiles })
-      setPreviews({ ...previews, images: updatedPreviews })
+      const previewUrl = URL.createObjectURL(file)
+      setPhotoItems(prev => [...prev, { type: 'new', file, previewUrl }])
       setCropModal({ show: false, image: null, index: null })
     } catch (e) {
       console.error(e)
@@ -193,19 +305,14 @@ function AdminDashboard() {
     }
   }
 
-  const removeFile = (index, isExisting = false) => {
-    if (isExisting) {
-      const updated = [...previews.existingImages]
-      updated.splice(index, 1)
-      setPreviews({ ...previews, existingImages: updated })
-    } else {
-      const updatedFiles = [...formData.imageFiles]
-      updatedFiles.splice(index, 1)
-      const updatedPreviews = [...previews.images]
-      updatedPreviews.splice(index, 1)
-      setFormData({ ...formData, imageFiles: updatedFiles })
-      setPreviews({ ...previews, images: updatedPreviews })
-    }
+  const removeFile = (index) => {
+    setPhotoItems(prev => {
+      const next = [...prev]
+      const item = next[index]
+      if (item?.type === 'new' && item.previewUrl) URL.revokeObjectURL(item.previewUrl)
+      next.splice(index, 1)
+      return next
+    })
   }
 
   const uploadFile = async (file, folder) => {
@@ -226,44 +333,39 @@ function AdminDashboard() {
       address: bar.address || '',
       latitude: bar.latitude || '',
       longitude: bar.longitude || '',
-      description: bar.description || '',
-      imageFiles: []
+      description: bar.description || ''
     })
-    setPreviews({
-      images: [],
-      existingImages: bar.detail_images && bar.detail_images.length > 0 ? bar.detail_images : [bar.cover_image_url || bar.image_name]
-    })
+    const urls = bar.detail_images?.length ? bar.detail_images : (bar.cover_image_url || bar.image_name ? [bar.cover_image_url || bar.image_name] : [])
+    setPhotoItems(urls.map(url => ({ type: 'existing', url })))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const cancelEdit = () => {
     setEditingId(null)
-    setFormData({ name: '', category: '鸡尾酒吧', address: '', latitude: '', longitude: '', description: '', imageFiles: [] })
-    setPreviews({ images: [], existingImages: [] })
+    setFormData({ name: '', category: '鸡尾酒吧', address: '', latitude: '', longitude: '', description: '' })
+    setPhotoItems([])
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // 检查是否有图片（新传的或原本有的）
-    const totalImages = formData.imageFiles.length + previews.existingImages.length
-    if (totalImages === 0) return alert('请至少上传一张照片')
+    if (photoItems.length === 0) return alert('请至少上传一张照片')
     
     setIsSubmitting(true)
 
     try {
-      // 1. 上传新图片
-      let finalUrls = [...previews.existingImages]
-      if (formData.imageFiles.length > 0) {
-        const newUrls = []
-        for (const file of formData.imageFiles) {
-          const url = await uploadFile(file, 'bar-details')
-          newUrls.push(url)
+      // 1. 按当前顺序（含拖拽后的顺序）生成 finalUrls
+      const finalUrls = []
+      for (const item of photoItems.slice(0, 5)) {
+        if (item.type === 'existing') {
+          finalUrls.push(item.url)
+        } else {
+          const url = await uploadFile(item.file, 'bar-details')
+          finalUrls.push(url)
         }
-        finalUrls = [...finalUrls, ...newUrls].slice(0, 5) // 保持 5 张
       }
 
-      // 2. 准备数据：第一张作为封面（image_name + cover_image_url），全集设为 detail_images
+      // 2. 准备数据：第一张作为封面（image_name + cover_image_url），全集设为 detail_images（顺序与后台一致）
       const barData = {
         name: formData.name,
         category: formData.category,
@@ -646,46 +748,30 @@ function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-3">店铺照片 (最多 5 张，第一张将作为封面图)</label>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  {/* 已有图片预览 (编辑模式) */}
-                  {previews.existingImages.map((url, idx) => (
-                    <div key={`existing-${idx}`} className="relative aspect-square group">
-                      <img src={url} className="w-full h-full object-cover rounded-xl border border-slate-200" />
-                      <button type="button" onClick={() => removeFile(idx, true)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                        <X size={12} />
-                      </button>
-                      {idx === 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-black text-center py-1 rounded-b-xl">封面图</div>
+                <label className="block text-sm font-bold text-slate-500 mb-3">店铺照片 (最多 5 张，可拖拽调整顺序，第一张为封面图)</label>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
+                  <SortableContext items={photoItems.map((_, i) => `photo-${i}`)} strategy={horizontalListSortingStrategy}>
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      {photoItems.map((item, idx) => (
+                        <SortablePhotoItem
+                          key={`photo-${idx}`}
+                          id={`photo-${idx}`}
+                          item={item}
+                          index={idx}
+                          isFirst={idx === 0}
+                          onRemove={removeFile}
+                        />
+                      ))}
+                      {photoItems.length < 5 && (
+                        <label className="cursor-pointer aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50 transition-all text-slate-400">
+                          <Plus size={24} />
+                          <span className="text-[10px] font-bold mt-1">添加照片</span>
+                          <input type="file" hidden accept="image/*" onChange={handleFileChange} />
+                        </label>
                       )}
                     </div>
-                  ))}
-
-                  {/* 新选择图片预览 */}
-                  {previews.images.map((url, idx) => {
-                    const isFirstGlobal = previews.existingImages.length === 0 && idx === 0;
-                    return (
-                      <div key={`new-${idx}`} className="relative aspect-square group">
-                        <img src={url} className="w-full h-full object-cover rounded-xl border border-indigo-200" />
-                        <button type="button" onClick={() => removeFile(idx, false)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                          <X size={12} />
-                        </button>
-                        {isFirstGlobal && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-black text-center py-1 rounded-b-xl">封面图</div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* 添加按钮 */}
-                  {(previews.images.length + previews.existingImages.length) < 5 && (
-                    <label className="cursor-pointer aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50 transition-all text-slate-400">
-                      <Plus size={24} />
-                      <span className="text-[10px] font-bold mt-1">添加照片</span>
-                      <input type="file" hidden accept="image/*" onChange={handleFileChange} />
-                    </label>
-                  )}
-                </div>
+                  </SortableContext>
+                </DndContext>
               </div>
 
               <div className="flex gap-3">
@@ -702,11 +788,14 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* 右侧：酒吧列表 */}
+        {/* 右侧：已发布酒吧列表（可拖拽排序） */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-black text-slate-800">已发布的酒吧</h2>
-            <button onClick={fetchBars} className="text-sm font-bold text-indigo-600">刷新</button>
+            <div className="flex items-center gap-3">
+              {barsSavingOrder && <span className="text-xs text-amber-600 font-bold flex items-center gap-1"><Loader2 className="animate-spin" size={14} /> 保存顺序中…</span>}
+              <button onClick={fetchBars} className="text-sm font-bold text-indigo-600">刷新</button>
+            </div>
           </div>
 
           {loading ? (
@@ -716,43 +805,26 @@ function AdminDashboard() {
               <AlertCircle className="mx-auto mb-2" /> 还没有录入过酒吧，快从左侧开始吧！
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {bars.map(bar => (
-                <div key={bar.id} className={`bg-white rounded-3xl shadow-sm border overflow-hidden group relative transition-all ${editingId === bar.id ? 'border-indigo-400 ring-2 ring-indigo-50' : 'border-slate-100'}`}>
-                  <div className="aspect-[16/10] overflow-hidden">
-                    <img 
-                      src={editingId === bar.id ? (previews.images[0] || previews.existingImages[0] || bar.cover_image_url || bar.image_name) : (bar.cover_image_url || bar.image_name)} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleBarDragEnd}>
+              <SortableContext items={bars.map(b => b.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {bars.map(bar => (
+                    <SortableBarRow
+                      key={bar.id}
+                      bar={bar}
+                      isEditing={editingId === bar.id}
+                      formName={formData.name}
+                      formCategory={formData.category}
+                      formAddress={formData.address}
+                      coverPreviewUrl={photoItems[0] ? (photoItems[0].type === 'existing' ? photoItems[0].url : photoItems[0].previewUrl) : (bar.cover_image_url || bar.image_name)}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onPartnerAccount={openPartnerAccountModal}
                     />
-                  </div>
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-black text-slate-800 text-lg">
-                        {editingId === bar.id ? (formData.name || '未命名酒吧') : bar.name}
-                      </h3>
-                      <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg font-black text-slate-500 uppercase tracking-wider">
-                        {editingId === bar.id ? formData.category : bar.category}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 flex items-center gap-1 mb-4">
-                      <MapPin size={12}/> {editingId === bar.id ? (formData.address || '未填写地址') : bar.address}
-                    </p>
-                    
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-4">
-                      <button type="button" onClick={() => openPartnerAccountModal(bar)} className="bg-white text-emerald-600 p-2 rounded-xl shadow-lg hover:bg-emerald-50 transition-colors" title="生成/重置商户账号">
-                        <UserPlus size={16}/>
-                      </button>
-                      <button onClick={() => handleEdit(bar)} className="bg-white text-indigo-600 p-2 rounded-xl shadow-lg hover:bg-indigo-50 transition-colors">
-                        <Edit2 size={16}/>
-                      </button>
-                      <button onClick={() => handleDelete(bar.id)} className="bg-red-500 text-white p-2 rounded-xl shadow-lg hover:bg-red-600 transition-colors">
-                        <Trash2 size={16}/>
-                      </button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>
