@@ -4,7 +4,7 @@
  */
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { Wine, MapPin, Phone, PieChart, Hash, Loader2, UserCheck } from 'lucide-react'
+import { Wine, MapPin, Phone, PieChart, Hash, Loader2, UserCheck, Ticket } from 'lucide-react'
 import { usePartnerAuth } from '../context/PartnerAuthContext'
 import { memFire } from '../context/PartnerAuthContext'
 
@@ -217,8 +217,8 @@ export default function PartnerDashboard() {
             onClick={() => navigate('/partner/create-activity')}
             className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col items-start gap-3 hover:border-indigo-500 hover:shadow-md transition-all text-left"
           >
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Hash size={20} />
+            <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white">
+              <Ticket size={20} strokeWidth={2} />
             </div>
             <div>
               <h3 className="text-base font-black text-slate-800">黑卡专属活动</h3>
