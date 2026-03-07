@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical } from 'lucide-react'
+import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../lib/memfire'
 
@@ -664,6 +664,12 @@ function AdminDashboard() {
           <h1 className="text-xl font-black text-slate-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">
+          <Link
+            to="/admin/app-config"
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full flex items-center gap-1.5"
+          >
+            <Settings size={12} /> App 配置
+          </Link>
           <Link
             to="/admin/audit-activities"
             className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full flex items-center gap-1.5"
