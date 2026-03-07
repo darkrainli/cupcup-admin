@@ -11,7 +11,12 @@ import { memFire } from '../lib/memfire'
 const PLATFORMS = [
   { value: 'zhipu', label: '智谱' },
   { value: 'qwen', label: '通义' },
-  { value: 'doubao', label: '豆包' }
+  { value: 'doubao', label: '豆包' },
+  { value: 'qianfan', label: '百度千帆' },
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'claude', label: 'Claude' },
+  { value: 'gemini', label: 'Gemini' },
+  { value: 'openai', label: 'ChatGPT' }
 ]
 
 function parseValue(value) {
@@ -51,6 +56,14 @@ export default function AppConfig() {
 
   const [withoutNfc, setWithoutNfc] = useState({ platform: 'zhipu', model: 'glm-4.6v' })
   const [withNfc, setWithNfc] = useState({ platform: 'zhipu', model: 'glm-4.6v' })
+  const [zhipuApiKey, setZhipuApiKey] = useState('')
+  const [qwenApiKey, setQwenApiKey] = useState('')
+  const [doubaoApiKey, setDoubaoApiKey] = useState('')
+  const [qianfanApiKey, setQianfanApiKey] = useState('')
+  const [deepseekApiKey, setDeepseekApiKey] = useState('')
+  const [claudeApiKey, setClaudeApiKey] = useState('')
+  const [geminiApiKey, setGeminiApiKey] = useState('')
+  const [openaiApiKey, setOpenaiApiKey] = useState('')
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -61,10 +74,15 @@ export default function AppConfig() {
     setLoading(true)
     setError('')
     try {
+      const configKeys = [
+        'cup_llm_without_nfc', 'cup_llm_with_nfc',
+        'zhipu_api_key', 'qwen_api_key', 'doubao_api_key', 'qianfan_api_key',
+        'deepseek_api_key', 'claude_api_key', 'gemini_api_key', 'openai_api_key'
+      ]
       const { data, error: err } = await memFire
         .from('app_config')
         .select('key, value')
-        .in('key', ['cup_llm_without_nfc', 'cup_llm_with_nfc'])
+        .in('key', configKeys)
       if (err) throw err
       const map = (data || []).reduce((acc, row) => {
         acc[row.key] = row.value
@@ -72,6 +90,14 @@ export default function AppConfig() {
       }, {})
       setWithoutNfc(parseValue(map.cup_llm_without_nfc))
       setWithNfc(parseValue(map.cup_llm_with_nfc))
+      setZhipuApiKey(map.zhipu_api_key ?? '')
+      setQwenApiKey(map.qwen_api_key ?? '')
+      setDoubaoApiKey(map.doubao_api_key ?? '')
+      setQianfanApiKey(map.qianfan_api_key ?? '')
+      setDeepseekApiKey(map.deepseek_api_key ?? '')
+      setClaudeApiKey(map.claude_api_key ?? '')
+      setGeminiApiKey(map.gemini_api_key ?? '')
+      setOpenaiApiKey(map.openai_api_key ?? '')
     } catch (e) {
       setError('加载配置失败: ' + (e?.message || ''))
     } finally {
@@ -94,10 +120,24 @@ export default function AppConfig() {
       return
     }
     setSaving(true)
+    const now = new Date().toISOString()
     try {
-      await memFire.from('app_config').update({ value: v1, updated_at: new Date().toISOString() }).eq('key', 'cup_llm_without_nfc')
-      await memFire.from('app_config').update({ value: v2, updated_at: new Date().toISOString() }).eq('key', 'cup_llm_with_nfc')
-      setSuccess('已保存，App 将按新配置调用识别模型。')
+      await memFire.from('app_config').upsert(
+        [
+          { key: 'cup_llm_without_nfc', value: v1, updated_at: now },
+          { key: 'cup_llm_with_nfc', value: v2, updated_at: now },
+          { key: 'zhipu_api_key', value: zhipuApiKey.trim(), updated_at: now },
+          { key: 'qwen_api_key', value: qwenApiKey.trim(), updated_at: now },
+          { key: 'doubao_api_key', value: doubaoApiKey.trim(), updated_at: now },
+          { key: 'qianfan_api_key', value: qianfanApiKey.trim(), updated_at: now },
+          { key: 'deepseek_api_key', value: deepseekApiKey.trim(), updated_at: now },
+          { key: 'claude_api_key', value: claudeApiKey.trim(), updated_at: now },
+          { key: 'gemini_api_key', value: geminiApiKey.trim(), updated_at: now },
+          { key: 'openai_api_key', value: openaiApiKey.trim(), updated_at: now }
+        ],
+        { onConflict: 'key' }
+      )
+      setSuccess('已保存。App 将使用新配置与 API Key（Key 留空时 App 使用内置兜底）。')
     } catch (e) {
       setError('保存失败: ' + (e?.message || ''))
     } finally {
@@ -181,6 +221,35 @@ export default function AppConfig() {
                 </div>
               )
             })}
+
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+              <h3 className="font-bold text-slate-800 mb-1">API Key 配置</h3>
+              <p className="text-xs text-slate-400 mb-4">在管理端配置后，可随时更换 Key，无需发版审核。留空则 App 使用内置兜底（仅智谱/通义有兜底）。</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { key: 'zhipu', label: '智谱', value: zhipuApiKey, set: setZhipuApiKey },
+                  { key: 'qwen', label: '通义', value: qwenApiKey, set: setQwenApiKey },
+                  { key: 'doubao', label: '豆包', value: doubaoApiKey, set: setDoubaoApiKey },
+                  { key: 'qianfan', label: '百度千帆', value: qianfanApiKey, set: setQianfanApiKey },
+                  { key: 'deepseek', label: 'DeepSeek', value: deepseekApiKey, set: setDeepseekApiKey },
+                  { key: 'claude', label: 'Claude', value: claudeApiKey, set: setClaudeApiKey },
+                  { key: 'gemini', label: 'Gemini', value: geminiApiKey, set: setGeminiApiKey },
+                  { key: 'openai', label: 'ChatGPT', value: openaiApiKey, set: setOpenaiApiKey }
+                ].map(({ key, label, value, set }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">{label} API Key</label>
+                    <input
+                      type="password"
+                      value={value}
+                      onChange={e => set(e.target.value)}
+                      placeholder="留空则使用内置兜底"
+                      className="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-800 placeholder:text-slate-400 text-sm"
+                      autoComplete="off"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <button
               type="submit"
