@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Wine, Loader2, Save, CheckCircle2, Settings } from 'lucide-react'
+import { Wine, Loader2, Save, CheckCircle2, Settings, CalendarCheck, Plus, Trash2 } from 'lucide-react'
 import { memFire } from '../lib/memfire'
 
 const PLATFORMS = [
@@ -64,6 +64,8 @@ export default function AppConfig() {
   const [claudeApiKey, setClaudeApiKey] = useState('')
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [openaiApiKey, setOpenaiApiKey] = useState('')
+  const [dailyCheckInLimit, setDailyCheckInLimit] = useState('')
+  const [userCheckInLimits, setUserCheckInLimits] = useState([])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -77,7 +79,8 @@ export default function AppConfig() {
       const configKeys = [
         'cup_llm_without_nfc', 'cup_llm_with_nfc',
         'zhipu_api_key', 'qwen_api_key', 'doubao_api_key', 'qianfan_api_key',
-        'deepseek_api_key', 'claude_api_key', 'gemini_api_key', 'openai_api_key'
+        'deepseek_api_key', 'claude_api_key', 'gemini_api_key', 'openai_api_key',
+        'daily_checkin_limit', 'user_checkin_limits'
       ]
       const { data, error: err } = await memFire
         .from('app_config')
@@ -98,6 +101,16 @@ export default function AppConfig() {
       setClaudeApiKey(map.claude_api_key ?? '')
       setGeminiApiKey(map.gemini_api_key ?? '')
       setOpenaiApiKey(map.openai_api_key ?? '')
+      setDailyCheckInLimit(map.daily_checkin_limit ?? '')
+      try {
+        const raw = map.user_checkin_limits ?? '{}'
+        const obj = typeof raw === 'string' ? JSON.parse(raw || '{}') : raw
+        setUserCheckInLimits(
+          Object.entries(obj).map(([userId, limit]) => ({ userId: String(userId), limit: Number(limit) || 1 }))
+        )
+      } catch {
+        setUserCheckInLimits([])
+      }
     } catch (e) {
       setError('加载配置失败: ' + (e?.message || ''))
     } finally {
@@ -121,6 +134,14 @@ export default function AppConfig() {
     }
     setSaving(true)
     const now = new Date().toISOString()
+    const dailyLimitValue = dailyCheckInLimit === '0' ? '' : (dailyCheckInLimit || '')
+    const userLimitsObj = userCheckInLimits
+      .filter(({ userId }) => String(userId).trim())
+      .reduce((acc, { userId, limit }) => {
+        acc[String(userId).trim()] = Math.min(20, Math.max(1, Number(limit) || 1))
+        return acc
+      }, {})
+    const userCheckInLimitsValue = JSON.stringify(userLimitsObj)
     try {
       await memFire.from('app_config').upsert(
         [
@@ -133,7 +154,9 @@ export default function AppConfig() {
           { key: 'deepseek_api_key', value: deepseekApiKey.trim(), updated_at: now },
           { key: 'claude_api_key', value: claudeApiKey.trim(), updated_at: now },
           { key: 'gemini_api_key', value: geminiApiKey.trim(), updated_at: now },
-          { key: 'openai_api_key', value: openaiApiKey.trim(), updated_at: now }
+          { key: 'openai_api_key', value: openaiApiKey.trim(), updated_at: now },
+          { key: 'daily_checkin_limit', value: dailyLimitValue, updated_at: now },
+          { key: 'user_checkin_limits', value: userCheckInLimitsValue, updated_at: now }
         ],
         { onConflict: 'key' }
       )
@@ -221,6 +244,77 @@ export default function AppConfig() {
                 </div>
               )
             })}
+
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarCheck className="text-indigo-600" size={20} />
+                <h3 className="font-bold text-slate-800">每日打卡次数限制</h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">全局上限：不设限或 1～20 次/天。达限后用户打开拍照界面会提示「请您明天再来」。</p>
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-500 mb-1">全局每日打卡上限</label>
+                <select
+                  value={dailyCheckInLimit === '0' ? '' : dailyCheckInLimit}
+                  onChange={e => setDailyCheckInLimit(e.target.value === '' ? '' : e.target.value)}
+                  className="w-full max-w-[200px] bg-slate-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-800"
+                >
+                  <option value="">不设限</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(n => (
+                    <option key={n} value={String(n)}>{n} 次/天</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-2">指定用户限次（覆盖全局）</label>
+                <p className="text-xs text-slate-400 mb-3">为指定 user_id 设置单独的每日上限，如被报警用户。留空或删除即使用全局上限。</p>
+                <div className="space-y-3">
+                  {userCheckInLimits.map((row, idx) => (
+                    <div key={idx} className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        value={row.userId}
+                        onChange={e => {
+                          const next = [...userCheckInLimits]
+                          next[idx] = { ...next[idx], userId: e.target.value }
+                          setUserCheckInLimits(next)
+                        }}
+                        placeholder="user_id"
+                        className="w-32 bg-slate-50 border-0 rounded-xl px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 placeholder:text-slate-400"
+                      />
+                      <span className="text-slate-400 text-sm">→</span>
+                      <select
+                        value={row.limit}
+                        onChange={e => {
+                          const next = [...userCheckInLimits]
+                          next[idx] = { ...next[idx], limit: Number(e.target.value) }
+                          setUserCheckInLimits(next)
+                        }}
+                        className="bg-slate-50 border-0 rounded-xl px-3 py-2 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(n => (
+                          <option key={n} value={n}>{n} 次/天</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setUserCheckInLimits(userCheckInLimits.filter((_, i) => i !== idx))}
+                        className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        title="删除"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setUserCheckInLimits([...userCheckInLimits, { userId: '', limit: 1 }])}
+                    className="flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-700"
+                  >
+                    <Plus size={16} /> 添加一条
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-1">API Key 配置</h3>
