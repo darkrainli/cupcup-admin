@@ -46,15 +46,15 @@ function PhotoItem({ item, isFirst, index, onRemove, onDragStart, onDragOver, on
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver?.(e, index); }}
       onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain'), 10); if (from !== index) onDrop?.(from, index); }}
       onDragEnd={() => onDragStart?.(null)}
-      className={`relative aspect-square group rounded-xl border cursor-grab active:cursor-grabbing overflow-visible ${isDragging ? 'z-10 shadow-xl ring-2 ring-indigo-400 opacity-80' : 'border-slate-200'}`}
+      className={`relative aspect-square group rounded-cc border cursor-grab active:cursor-grabbing overflow-visible ${isDragging ? 'z-10 shadow-xl ring-2 ring-cc-primary opacity-80' : 'border-cc-border'}`}
     >
       <div className="absolute inset-0 rounded-xl overflow-hidden">
         <img src={src} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <span className="p-2 rounded-full bg-white/90 text-slate-700"><GripVertical size={20} /></span>
+          <span className="p-2 rounded-full bg-white/90 text-cc-neutral-700"><GripVertical size={20} /></span>
         </div>
         {isFirst && (
-          <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/80 text-white text-[10px] font-black text-center py-1 rounded-b-xl">封面图</div>
+          <div className="absolute bottom-0 left-0 right-0 bg-cc-primary/90 text-white text-[10px] font-bold text-center py-1 rounded-b-cc">封面图</div>
         )}
       </div>
       <button type="button" onClick={() => onRemove(index)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 min-w-[24px] min-h-[24px] flex items-center justify-center">
@@ -74,27 +74,27 @@ function BarRow({ bar, isEditing, formName, formCategory, formAddress, coverPrev
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver?.(e, index); }}
       onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain'), 10); if (from !== index) onDrop?.(from, index); }}
       onDragEnd={() => onDragStart?.(null)}
-      className={`flex items-center gap-4 p-4 rounded-2xl border bg-white transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'shadow-xl ring-2 ring-indigo-400 z-10 opacity-80' : 'border-slate-100'} ${isEditing ? 'border-indigo-400 ring-2 ring-indigo-50' : ''}`}
+      className={`flex items-center gap-4 p-4 rounded-cc-xl border bg-cc-surface transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'shadow-xl ring-2 ring-cc-primary z-10 opacity-80' : 'border-cc-border'} ${isEditing ? 'border-cc-primary ring-2 ring-cc-primary-subtle' : ''}`}
     >
-      <span className="p-2 rounded-xl text-slate-400 shrink-0 pointer-events-none" title="拖拽调整顺序">
+      <span className="p-2 rounded-cc text-cc-neutral-400 shrink-0 pointer-events-none" title="拖拽调整顺序">
         <GripVertical size={20} />
       </span>
-      <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-        {coverUrl ? <img src={coverUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Wine size={24} className="text-slate-300" /></div>}
+      <div className="w-20 h-20 rounded-cc overflow-hidden shrink-0 bg-cc-neutral-100">
+        {coverUrl ? <img src={coverUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Wine size={24} className="text-cc-neutral-400" /></div>}
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-black text-slate-800 truncate">{isEditing ? formName : bar.name}</h3>
-        <p className="text-xs text-slate-500 truncate">{isEditing ? formCategory : bar.category}</p>
-        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {isEditing ? formAddress : bar.address}</p>
+        <h3 className="font-bold text-cc-neutral-800 truncate">{isEditing ? formName : bar.name}</h3>
+        <p className="text-xs text-cc-neutral-500 truncate">{isEditing ? formCategory : bar.category}</p>
+        <p className="text-xs text-cc-neutral-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {isEditing ? formAddress : bar.address}</p>
       </div>
       <div className="flex gap-2 shrink-0">
-        <button type="button" onClick={() => onPartnerAccount(bar)} className="bg-slate-100 text-emerald-600 p-2 rounded-xl hover:bg-emerald-50 transition-colors" title="生成/重置商户账号">
+        <button type="button" onClick={() => onPartnerAccount(bar)} className="bg-cc-neutral-100 text-cc-success p-2 rounded-cc hover:bg-cc-success-bg transition-colors" title="生成/重置商户账号">
           <UserPlus size={16} />
         </button>
-        <button type="button" onClick={() => onEdit(bar)} className="bg-slate-100 text-indigo-600 p-2 rounded-xl hover:bg-indigo-50 transition-colors">
+        <button type="button" onClick={() => onEdit(bar)} className="bg-cc-neutral-100 text-cc-primary p-2 rounded-cc hover:bg-cc-primary-subtle transition-colors">
           <Edit2 size={16} />
         </button>
-        <button type="button" onClick={() => onDelete(bar.id)} className="bg-red-500 text-white p-2 rounded-xl hover:bg-red-600 transition-colors">
+        <button type="button" onClick={() => onDelete(bar.id)} className="bg-cc-error text-white p-2 rounded-cc hover:opacity-90 transition-colors">
           <Trash2 size={16} />
         </button>
       </div>
@@ -497,55 +497,55 @@ function AdminDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-        <div className="bg-white rounded-[40px] shadow-2xl p-10 w-full max-w-md border border-slate-100">
+      <div className="min-h-screen bg-cc-neutral-50 flex items-center justify-center p-6">
+        <div className="bg-cc-surface rounded-cc-2xl shadow-lg p-10 w-full max-w-md border border-cc-border">
           <div className="flex flex-col items-center mb-10">
-            <div className="bg-indigo-600 p-4 rounded-3xl text-white mb-4 shadow-xl shadow-indigo-200">
+            <div className="bg-cc-primary p-4 rounded-cc-xl text-white mb-4 shadow-lg">
               <Wine size={40} />
             </div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">CupCup Admin</h1>
-            <p className="text-slate-400 font-bold text-sm mt-1 uppercase tracking-widest">后台管理中心</p>
+            <h1 className="text-3xl font-extrabold text-cc-neutral-800 tracking-tight">CupCup Admin</h1>
+            <p className="text-cc-neutral-500 font-semibold text-sm mt-1 uppercase tracking-widest">后台管理中心</p>
           </div>
           
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">管理员账号</label>
+              <label className="block text-xs font-bold text-cc-neutral-500 uppercase tracking-widest mb-2 ml-1">管理员账号</label>
               <input 
                 required
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-4 transition-all font-bold text-slate-700 outline-none"
+                className="w-full bg-cc-neutral-100 border-2 border-transparent focus:border-cc-primary focus:bg-cc-surface rounded-cc-xl px-5 py-4 transition-all font-semibold text-cc-neutral-700 outline-none"
                 placeholder="请输入 ID"
                 value={loginForm.id}
                 onChange={e => setLoginForm({...loginForm, id: e.target.value})}
               />
             </div>
             <div>
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">安全密码</label>
+              <label className="block text-xs font-bold text-cc-neutral-500 uppercase tracking-widest mb-2 ml-1">安全密码</label>
               <input 
                 required
                 type="password"
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-4 transition-all font-bold text-slate-700 outline-none"
+                className="w-full bg-cc-neutral-100 border-2 border-transparent focus:border-cc-primary focus:bg-cc-surface rounded-cc-xl px-5 py-4 transition-all font-semibold text-cc-neutral-700 outline-none"
                 placeholder="请输入密码"
                 value={loginForm.password}
                 onChange={e => setLoginForm({...loginForm, password: e.target.value})}
               />
             </div>
-            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <button className="w-full bg-cc-primary hover:bg-cc-primary-hover text-white font-bold py-5 rounded-cc-xl transition-all hover:opacity-95 active:opacity-90">
               安全登录
             </button>
           </form>
           
-          <p className="text-center text-slate-300 text-xs font-bold mt-10">© 2026 CupCup Technology Inc.</p>
+          <p className="text-center text-cc-neutral-400 text-xs font-semibold mt-10">© 2026 CupCup Technology Inc.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-cc-neutral-50 pb-20">
       {/* 裁剪弹窗 */}
       {cropModal.show && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-6">
-          <div className="relative w-full max-w-xl aspect-square bg-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-[100] bg-cc-neutral-900/40 flex flex-col items-center justify-center p-6">
+          <div className="relative w-full max-w-xl aspect-square bg-cc-neutral-100 rounded-cc-2xl overflow-hidden shadow-2xl border border-cc-border">
             {CropperComponent ? (
               <CropperComponent
                 image={cropModal.image}
@@ -568,14 +568,14 @@ function AdminDashboard() {
               className="flex-1 accent-indigo-500" />
             <div className="flex gap-3">
               <button onClick={() => setCropModal({ show: false, image: null, index: null })} 
-                className="bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-600 transition-colors">取消</button>
+                className="bg-cc-neutral-600 text-white px-6 py-3 rounded-cc-xl font-bold hover:bg-cc-neutral-700 transition-colors">取消</button>
               <button onClick={handleCropSave} 
-                className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 transition-all flex items-center gap-2">
+                className="bg-cc-primary text-white px-8 py-3 rounded-cc-xl font-bold hover:bg-cc-primary-hover transition-all flex items-center gap-2">
                 <Scissors size={18}/> 确认裁剪并保存
               </button>
             </div>
           </div>
-          <p className="mt-4 text-slate-400 text-sm font-bold flex items-center gap-2">
+          <p className="mt-4 text-cc-neutral-400 text-sm font-bold flex items-center gap-2">
             <Scissors size={14}/> 请选取正方形区域，系统将自动进行压缩优化
           </p>
         </div>
@@ -584,31 +584,31 @@ function AdminDashboard() {
       {/* 生成商户登录账号弹窗：未设置邮箱时可编辑并保存到 bars；已设置则只读，仅关闭 */}
       {partnerAccountModal.show && partnerAccountModal.bar && (
         <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-6" onClick={() => !partnerSubmitting && setPartnerAccountModal({ show: false, bar: null })}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-slate-800 mb-2 flex items-center gap-2">
-              <UserPlus size={20} className="text-emerald-600" /> {partnerAccountModal.bar.owner_email || partnerAccountModal.bar.owner_auth_id ? '商户登录账号' : '生成商户登录账号'}
+          <div className="bg-cc-surface rounded-cc-2xl shadow-2xl w-full max-w-md p-8" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-cc-neutral-800 mb-2 flex items-center gap-2">
+              <UserPlus size={20} className="text-cc-success" /> {partnerAccountModal.bar.owner_email || partnerAccountModal.bar.owner_auth_id ? '商户登录账号' : '生成商户登录账号'}
             </h3>
-            <p className="text-sm text-slate-500 mb-6">门店：{partnerAccountModal.bar.name}</p>
+            <p className="text-sm text-cc-neutral-500 mb-6">门店：{partnerAccountModal.bar.name}</p>
 
             {(partnerAccountModal.bar.owner_email || partnerAccountModal.bar.owner_auth_id) ? (
               /* 已绑定：只读显示 bars 表中的邮箱与密码，仅有关闭按钮 */
               <div className="space-y-4">
-                <p className="text-sm text-slate-600">该门店已设置登录账号，以下为 bars 表中存储的邮箱与密码（只读）。</p>
+                <p className="text-sm text-cc-neutral-600">该门店已设置登录账号，以下为 bars 表中存储的邮箱与密码（只读）。</p>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">登录邮箱</label>
-                  <input type="text" readOnly value={partnerAccountModal.bar.owner_email || ''} className="w-full bg-slate-100 rounded-xl px-4 py-3 border border-slate-200 text-slate-800" />
+                  <label className="block text-xs font-bold text-cc-neutral-500 mb-1">登录邮箱</label>
+                  <input type="text" readOnly value={partnerAccountModal.bar.owner_email || ''} className="w-full bg-cc-neutral-100 rounded-cc px-4 py-3 border border-cc-border text-cc-neutral-800" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">登录密码</label>
+                  <label className="block text-xs font-bold text-cc-neutral-500 mb-1">登录密码</label>
                   <input
                     type="text"
                     readOnly
                     value={partnerPassword}
-                    className="w-full bg-slate-100 rounded-xl px-4 py-3 border border-slate-200 font-mono text-slate-800"
+                    className="w-full bg-cc-neutral-100 rounded-cc px-4 py-3 border border-cc-border font-mono text-cc-neutral-800"
                   />
                 </div>
                 <div className="pt-2">
-                  <button type="button" onClick={() => setPartnerAccountModal({ show: false, bar: null })} className="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200">
+                  <button type="button" onClick={() => setPartnerAccountModal({ show: false, bar: null })} className="w-full bg-cc-neutral-100 text-cc-neutral-600 font-bold py-3 rounded-cc hover:bg-cc-neutral-200">
                     关闭
                   </button>
                 </div>
@@ -616,37 +616,37 @@ function AdminDashboard() {
             ) : (
               <form onSubmit={handleCreatePartnerAccount} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">商户邮箱</label>
+                  <label className="block text-xs font-bold text-cc-neutral-500 mb-1">商户邮箱</label>
                   <input
                     type="email"
                     required
                     value={partnerEmail}
                     onChange={e => setPartnerEmail(e.target.value)}
                     placeholder="boss@coffee.com"
-                    className="w-full bg-slate-50 rounded-xl px-4 py-3 border-0 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full bg-cc-neutral-100 rounded-cc px-4 py-3 border-0 focus:ring-2 focus:ring-cc-primary outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">初始密码（可修改）</label>
+                  <label className="block text-xs font-bold text-cc-neutral-500 mb-1">初始密码（可修改）</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={partnerPassword}
                       onChange={e => setPartnerPassword(e.target.value)}
                       placeholder="8 位或使用 CupWorld888"
-                      className="flex-1 bg-slate-50 rounded-xl px-4 py-3 border-0 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="flex-1 bg-cc-neutral-100 rounded-cc px-4 py-3 border-0 focus:ring-2 focus:ring-cc-primary outline-none"
                     />
-                    <button type="button" onClick={generatePartnerPassword} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 rounded-xl whitespace-nowrap">
+                    <button type="button" onClick={generatePartnerPassword} className="bg-cc-neutral-100 hover:bg-cc-neutral-200 text-cc-neutral-700 font-bold px-4 rounded-cc whitespace-nowrap">
                       随机生成
                     </button>
                   </div>
                 </div>
-                {partnerError && <p className="text-red-600 text-sm font-semibold">{partnerError}</p>}
+                {partnerError && <p className="text-cc-error text-sm font-semibold">{partnerError}</p>}
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setPartnerAccountModal({ show: false, bar: null })} className="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200">
+                  <button type="button" onClick={() => setPartnerAccountModal({ show: false, bar: null })} className="flex-1 bg-cc-neutral-100 text-cc-neutral-600 font-bold py-3 rounded-cc hover:bg-cc-neutral-200">
                     取消
                   </button>
-                  <button type="submit" disabled={partnerSubmitting} className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <button type="submit" disabled={partnerSubmitting} className="flex-1 bg-cc-success text-white font-bold py-3 rounded-cc hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
                     {partnerSubmitting ? <Loader2 className="animate-spin" size={18} /> : null}
                     {partnerSubmitting ? '创建中…' : '创建并绑定'}
                   </button>
@@ -658,30 +658,30 @@ function AdminDashboard() {
       )}
 
       {/* 顶部导航 */}
-      <nav className="bg-white border-b px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
+      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="bg-indigo-600 p-2 rounded-xl text-white"><Wine size={24}/></div>
-          <h1 className="text-xl font-black text-slate-800 tracking-tight">CupCup 管理系统</h1>
+          <div className="bg-cc-primary p-2 rounded-cc text-white"><Wine size={24}/></div>
+          <h1 className="text-xl font-extrabold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">
           <Link
             to="/admin/app-config"
-            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full flex items-center gap-1.5"
+            className="text-xs font-bold text-cc-primary hover:opacity-90 bg-cc-primary-subtle px-3 py-1.5 rounded-full flex items-center gap-1.5"
           >
             <Settings size={12} /> App 配置
           </Link>
           <Link
             to="/admin/audit-activities"
-            className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full flex items-center gap-1.5"
+            className="text-xs font-bold text-cc-warning hover:opacity-90 bg-cc-warning-bg px-3 py-1.5 rounded-full flex items-center gap-1.5"
           >
             <FileText size={12} /> 活动审核
           </Link>
-          <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-1 rounded-full flex items-center gap-1">
+          <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
             <CheckCircle2 size={12}/> 已连接 MemFire
           </span>
           <button 
             onClick={handleLogout}
-            className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full"
+            className="text-xs font-bold text-cc-neutral-500 hover:text-cc-error transition-colors flex items-center gap-1 bg-cc-neutral-100 px-3 py-1 rounded-full"
           >
             退出登录
           </button>
@@ -692,14 +692,14 @@ function AdminDashboard() {
         
         {/* 左侧：录入/编辑表单 */}
         <div className="lg:col-span-1">
-          <div className={`bg-white rounded-3xl shadow-xl border p-8 sticky top-28 transition-all ${editingId ? 'border-indigo-500 ring-2 ring-indigo-50' : 'border-slate-100'}`}>
+          <div className={`bg-cc-surface rounded-cc-2xl shadow-lg border p-8 sticky top-28 transition-all ${editingId ? 'border-cc-primary ring-2 ring-cc-primary-subtle' : 'border-cc-border'}`}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                {editingId ? <Edit2 className="text-indigo-600" /> : <Plus className="text-indigo-600" />} 
+              <h2 className="text-2xl font-bold text-cc-neutral-800 flex items-center gap-2">
+                {editingId ? <Edit2 className="text-cc-primary" /> : <Plus className="text-cc-primary" />} 
                 {editingId ? '修改店铺信息' : '录入新店铺'}
               </h2>
               {editingId && (
-                <button onClick={cancelEdit} className="text-slate-400 hover:text-red-500 transition-colors">
+                <button onClick={cancelEdit} className="text-cc-neutral-500 hover:text-cc-error transition-colors">
                   <X size={20} />
                 </button>
               )}
@@ -707,14 +707,14 @@ function AdminDashboard() {
             
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-2">店铺名称</label>
-                <input required className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 transition-all" 
+                <label className="block text-sm font-bold text-cc-neutral-500 mb-2">店铺名称</label>
+                <input required className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3 focus:ring-2 focus:ring-cc-primary transition-all" 
                   value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="输入酒吧名字..." />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-2">店面分类</label>
-                <select className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" 
+                <label className="block text-sm font-bold text-cc-neutral-500 mb-2">店面分类</label>
+                <select className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                   value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
                   {SHOP_CATEGORIES.map(cat => (
                     <optgroup key={cat.name} label={cat.name}>
@@ -727,32 +727,32 @@ function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-2">详细地址</label>
-                <input required className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" 
+                <label className="block text-sm font-bold text-cc-neutral-500 mb-2">详细地址</label>
+                <input required className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                   value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="例如：北京市朝阳区..." />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-500 mb-2">北纬 (Latitude)</label>
-                  <input type="number" step="any" className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" 
+                  <label className="block text-sm font-bold text-cc-neutral-500 mb-2">北纬 (Latitude)</label>
+                  <input type="number" step="any" className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                     value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="39.9324" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-500 mb-2">东经 (Longitude)</label>
-                  <input type="number" step="any" className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3" 
+                  <label className="block text-sm font-bold text-cc-neutral-500 mb-2">东经 (Longitude)</label>
+                  <input type="number" step="any" className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                     value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="116.4553" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-2">介绍</label>
-                <textarea rows={3} className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 resize-none" 
+                <label className="block text-sm font-bold text-cc-neutral-500 mb-2">介绍</label>
+                <textarea rows={3} className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3 resize-none" 
                   value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="描述一下这家店..." />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-500 mb-3">店铺照片 (最多 5 张，可拖拽调整顺序，第一张为封面图)</label>
+                <label className="block text-sm font-bold text-cc-neutral-500 mb-3">店铺照片 (最多 5 张，可拖拽调整顺序，第一张为封面图)</label>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   {photoItems.map((item, idx) => (
                     <PhotoItem
@@ -767,7 +767,7 @@ function AdminDashboard() {
                     />
                   ))}
                   {photoItems.length < 5 && (
-                    <label className="cursor-pointer aspect-square border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center hover:border-indigo-400 hover:bg-indigo-50 transition-all text-slate-400">
+                    <label className="cursor-pointer aspect-square border-2 border-dashed border-cc-border rounded-cc flex flex-col items-center justify-center hover:border-cc-primary hover:bg-cc-primary-subtle transition-all text-cc-neutral-500">
                       <Plus size={24} />
                       <span className="text-[10px] font-bold mt-1">添加照片</span>
                       <input type="file" hidden accept="image/*" onChange={handleFileChange} />
@@ -778,11 +778,11 @@ function AdminDashboard() {
 
               <div className="flex gap-3">
                 {editingId && (
-                  <button type="button" onClick={cancelEdit} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-2xl transition-all">
+                  <button type="button" onClick={cancelEdit} className="flex-1 bg-cc-neutral-100 hover:bg-cc-neutral-200 text-cc-neutral-600 font-bold py-4 rounded-cc-xl transition-all">
                     取消
                   </button>
                 )}
-                <button disabled={isSubmitting} className={`flex-[2] text-white font-black py-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${editingId ? 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
+                <button disabled={isSubmitting} className={`flex-[2] text-white font-bold py-4 rounded-cc-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${editingId ? 'bg-cc-primary hover:bg-cc-primary-hover' : 'bg-cc-primary hover:bg-cc-primary-hover'}`}>
                   {isSubmitting ? <Loader2 className="animate-spin" /> : editingId ? '确认修改' : '立即发布到 App'}
                 </button>
               </div>
@@ -793,17 +793,17 @@ function AdminDashboard() {
         {/* 右侧：已发布酒吧列表（可拖拽排序） */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-black text-slate-800">已发布的酒吧</h2>
+            <h2 className="text-2xl font-extrabold text-cc-neutral-800">已发布的酒吧</h2>
             <div className="flex items-center gap-3">
-              {barsSavingOrder && <span className="text-xs text-amber-600 font-bold flex items-center gap-1"><Loader2 className="animate-spin" size={14} /> 保存顺序中…</span>}
-              <button onClick={fetchBars} className="text-sm font-bold text-indigo-600">刷新</button>
+              {barsSavingOrder && <span className="text-xs text-cc-warning font-bold flex items-center gap-1"><Loader2 className="animate-spin" size={14} /> 保存顺序中…</span>}
+              <button onClick={fetchBars} className="text-sm font-bold text-cc-primary">刷新</button>
             </div>
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-300" size={40} /></div>
+            <div className="flex justify-center py-20"><Loader2 className="animate-spin text-cc-neutral-300" size={40} /></div>
           ) : bars.length === 0 ? (
-            <div className="bg-white rounded-3xl p-20 text-center border border-dashed text-slate-400 font-bold">
+            <div className="bg-cc-surface rounded-cc-2xl p-20 text-center border border-dashed border-cc-border text-cc-neutral-500 font-bold">
               <AlertCircle className="mx-auto mb-2" /> 还没有录入过酒吧，快从左侧开始吧！
             </div>
           ) : (

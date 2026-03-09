@@ -277,18 +277,18 @@ export default function PartnerCreateActivity() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-indigo-500" size={40} />
+      <div className="min-h-screen bg-cc-neutral-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-cc-primary" size={40} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-cc-neutral-50 pb-20">
       {/* 裁切弹窗：Grid 布局，底部操作栏固定一行、始终在视口内且可点击 */}
       {cropModal.show && (
         <div
-          className="fixed inset-0 z-[100] bg-black/95"
+          className="fixed inset-0 z-[100] bg-cc-neutral-900/50"
           style={{
             display: 'grid',
             gridTemplateRows: '1fr auto',
@@ -298,7 +298,7 @@ export default function PartnerCreateActivity() {
           {/* 上：裁剪区，限制高度不压住底部栏 */}
           <div className="min-h-0 overflow-auto flex items-center justify-center p-4" style={{ position: 'relative', zIndex: 1 }}>
             <div
-              className="bg-slate-800 rounded-2xl overflow-hidden shrink-0"
+              className="bg-cc-neutral-100 rounded-cc-xl overflow-hidden shrink-0 border border-cc-border"
               style={{ width: 'min(400px, 65vmin)', height: 'min(400px, 65vmin)' }}
             >
               {CropperComponent ? (
@@ -320,7 +320,7 @@ export default function PartnerCreateActivity() {
           </div>
           {/* 下：操作栏，独立一行、保证露出且可点（避免被裁切层遮挡） */}
           <div
-            className="w-full bg-slate-800 border-t-2 border-slate-600 px-4 py-4 flex flex-col items-center justify-center gap-2"
+            className="w-full bg-cc-neutral-100 border-t border-cc-border px-4 py-4 flex flex-col items-center justify-center gap-2"
             style={{ minHeight: '120px', position: 'relative', zIndex: 20, pointerEvents: 'auto' }}
           >
             <div className="w-full max-w-md flex flex-wrap items-center justify-center gap-3">
@@ -332,49 +332,49 @@ export default function PartnerCreateActivity() {
                 max={3}
                 step={0.1}
                 onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-32 sm:w-40 accent-indigo-400 cursor-pointer"
+                className="w-32 sm:w-40 accent-cc-primary cursor-pointer"
               />
               <button
                 type="button"
                 onClick={() => setCropModal({ show: false, image: null })}
-                className="bg-slate-500 hover:bg-slate-400 active:bg-slate-600 text-white font-bold px-5 py-2.5 rounded-xl cursor-pointer border-0 transition-colors"
+                className="bg-cc-neutral-500 hover:bg-cc-neutral-600 text-white font-bold px-5 py-2.5 rounded-cc cursor-pointer border-0 transition-colors"
               >
                 取消
               </button>
               <button
                 type="button"
                 onClick={handleCropSave}
-                className="bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer border-0 transition-colors"
+                className="bg-cc-primary hover:bg-cc-primary-hover text-white font-bold px-6 py-2.5 rounded-cc flex items-center gap-2 cursor-pointer border-0 transition-colors"
               >
                 <Scissors size={18} /> 确认裁剪
               </button>
             </div>
-            <p className="text-slate-400 text-xs">1:1 裁切后将压缩至 300KB 内</p>
+            <p className="text-cc-neutral-500 text-xs">1:1 裁切后将压缩至 300KB 内</p>
           </div>
         </div>
       )}
 
       {/* 顶栏 */}
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
+      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/partner/dashboard')}
-            className="p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+            className="p-2 -ml-2 rounded-cc text-cc-neutral-600 hover:bg-cc-neutral-100 hover:text-cc-neutral-800 transition-colors"
             title="返回仪表盘"
           >
             <ArrowLeft size={22} />
           </button>
-          <div className="bg-indigo-600 p-2 rounded-xl text-white">
+          <div className="bg-cc-primary p-2 rounded-cc text-white">
             <Wine size={22} />
           </div>
-          <span className="font-black text-slate-800">商户后台 · 发布活动</span>
+          <span className="font-bold text-cc-neutral-800">商户后台 · 发布活动</span>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/partner/create-activity')}
-            className="text-sm font-bold text-indigo-600 hover:underline"
+            className="text-sm font-bold text-cc-primary hover:underline"
           >
             发布活动
           </button>
@@ -385,7 +385,7 @@ export default function PartnerCreateActivity() {
               // 使用整页跳转避免 React 在注销后因 Hook 顺序变更报错 (#300)，并确保退出后总是回到登录页
               window.location.href = '/partner/login'
             }}
-            className="text-sm font-bold text-slate-500 hover:text-red-500"
+            className="text-sm font-bold text-cc-neutral-500 hover:text-cc-error"
           >
             退出登录
           </button>

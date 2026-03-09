@@ -170,25 +170,25 @@ export default function AppConfig() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <p className="text-slate-500 font-bold">请先<a href="/" className="text-indigo-600 underline">登录管理后台</a>后再访问此页。</p>
+      <div className="min-h-screen bg-cc-neutral-50 flex items-center justify-center p-6">
+        <p className="text-cc-neutral-500 font-bold">请先<a href="/" className="text-cc-primary underline">登录管理后台</a>后再访问此页。</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <nav className="bg-white border-b px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
+    <div className="min-h-screen bg-cc-neutral-50 pb-20">
+      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="bg-indigo-600 p-2 rounded-xl text-white"><Wine size={24} /></div>
-          <h1 className="text-xl font-black text-slate-800 tracking-tight">CupCup 管理系统</h1>
+          <div className="bg-cc-primary p-2 rounded-cc text-white"><Wine size={24} /></div>
+          <h1 className="text-xl font-extrabold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-xs font-bold text-slate-500 hover:text-slate-700">返回门店管理</Link>
-          <Link to="/admin/audit-activities" className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+          <Link to="/" className="text-xs font-bold text-cc-neutral-500 hover:text-cc-neutral-700">返回门店管理</Link>
+          <Link to="/admin/audit-activities" className="text-xs font-bold text-cc-warning hover:opacity-90 bg-cc-warning-bg px-3 py-1.5 rounded-full flex items-center gap-1.5">
             活动审核
           </Link>
-          <span className="text-xs font-bold text-green-500 bg-green-50 px-3 py-1 rounded-full flex items-center gap-1">
+          <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
             <CheckCircle2 size={12} /> 已连接 MemFire
           </span>
         </div>
@@ -196,33 +196,33 @@ export default function AppConfig() {
 
       <div className="max-w-2xl mx-auto px-6 py-10">
         <div className="flex items-center gap-2 mb-2">
-          <Settings className="text-indigo-600" size={24} />
-          <h2 className="text-2xl font-black text-slate-800">App 配置</h2>
+          <Settings className="text-cc-primary" size={24} />
+          <h2 className="text-2xl font-extrabold text-cc-neutral-800">App 配置</h2>
         </div>
-        <p className="text-slate-500 text-sm mb-8">配置杯子识别使用的大模型，不依赖 App 发版即可切换。</p>
+        <p className="text-cc-neutral-500 text-sm mb-8">配置杯子识别使用的大模型，不依赖 App 发版即可切换。</p>
 
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-300" size={40} /></div>
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-cc-neutral-300" size={40} /></div>
         ) : (
           <form onSubmit={handleSave} className="space-y-8">
-            {error && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl text-sm font-bold">{error}</div>}
-            {success && <div className="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-2xl text-sm font-bold">{success}</div>}
+            {error && <div className="bg-cc-error-bg text-cc-error px-4 py-3 rounded-cc-xl text-sm font-bold">{error}</div>}
+            {success && <div className="bg-cc-success-bg text-cc-success px-4 py-3 rounded-cc-xl text-sm font-bold">{success}</div>}
 
             {CONFIG_KEYS.map(({ key, title, desc }) => {
               const isWithout = key === 'cup_llm_without_nfc'
               const state = isWithout ? withoutNfc : withNfc
               const setState = isWithout ? setWithoutNfc : setWithNfc
               return (
-                <div key={key} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-                  <h3 className="font-bold text-slate-800 mb-1">{title}</h3>
-                  <p className="text-xs text-slate-400 mb-4">{desc}</p>
+                <div key={key} className="bg-cc-surface rounded-cc-2xl border border-cc-border shadow-sm p-6">
+                  <h3 className="font-bold text-cc-neutral-800 mb-1">{title}</h3>
+                  <p className="text-xs text-cc-neutral-500 mb-4">{desc}</p>
                   <div className="flex flex-wrap gap-4 items-end">
                     <div className="min-w-[120px]">
-                      <label className="block text-xs font-bold text-slate-500 mb-1">平台</label>
+                      <label className="block text-xs font-bold text-cc-neutral-500 mb-1">平台</label>
                       <select
                         value={PLATFORMS.some(p => p.value === state.platform) ? state.platform : 'zhipu'}
                         onChange={e => setState({ ...state, platform: e.target.value })}
-                        className="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-800"
+                        className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 focus:ring-2 focus:ring-cc-primary outline-none font-medium text-cc-neutral-800"
                       >
                         {PLATFORMS.map(p => (
                           <option key={p.value} value={p.value}>{p.label}</option>
@@ -230,33 +230,33 @@ export default function AppConfig() {
                       </select>
                     </div>
                     <div className="flex-1 min-w-[160px]">
-                      <label className="block text-xs font-bold text-slate-500 mb-1">模型名称</label>
+                      <label className="block text-xs font-bold text-cc-neutral-500 mb-1">模型名称</label>
                       <input
                         type="text"
                         value={state.model}
                         onChange={e => setState({ ...state, model: e.target.value })}
                         placeholder="如 glm-4.6v、qwen-vl-max"
-                        className="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-800 placeholder:text-slate-400"
+                        className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 focus:ring-2 focus:ring-cc-primary outline-none font-medium text-cc-neutral-800 placeholder:text-cc-neutral-400"
                       />
                     </div>
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">保存后将写入为：{buildValue(state.platform, state.model) || '—'}</p>
+                  <p className="mt-2 text-xs text-cc-neutral-500">保存后将写入为：{buildValue(state.platform, state.model) || '—'}</p>
                 </div>
               )
             })}
 
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-cc-surface rounded-cc-2xl border border-cc-border shadow-sm p-6">
               <div className="flex items-center gap-2 mb-1">
-                <CalendarCheck className="text-indigo-600" size={20} />
-                <h3 className="font-bold text-slate-800">每日打卡次数限制</h3>
+                <CalendarCheck className="text-cc-primary" size={20} />
+                <h3 className="font-bold text-cc-neutral-800">每日打卡次数限制</h3>
               </div>
-              <p className="text-xs text-slate-400 mb-4">全局上限：不设限或 1～20 次/天。达限后用户打开拍照界面会提示「请您明天再来」。</p>
+              <p className="text-xs text-cc-neutral-500 mb-4">全局上限：不设限或 1～20 次/天。达限后用户打开拍照界面会提示「请您明天再来」。</p>
               <div className="mb-6">
-                <label className="block text-xs font-bold text-slate-500 mb-1">全局每日打卡上限</label>
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-1">全局每日打卡上限</label>
                 <select
                   value={dailyCheckInLimit === '0' ? '' : dailyCheckInLimit}
                   onChange={e => setDailyCheckInLimit(e.target.value === '' ? '' : e.target.value)}
-                  className="w-full max-w-[200px] bg-slate-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-800"
+                  className="w-full max-w-[200px] bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 focus:ring-2 focus:ring-cc-primary outline-none font-medium text-cc-neutral-800"
                 >
                   <option value="">不设限</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(n => (
@@ -265,8 +265,8 @@ export default function AppConfig() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2">指定用户限次（覆盖全局）</label>
-                <p className="text-xs text-slate-400 mb-3">为指定 user_id 设置单独的每日上限，如被报警用户。留空或删除即使用全局上限。</p>
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-2">指定用户限次（覆盖全局）</label>
+                <p className="text-xs text-cc-neutral-500 mb-3">为指定 user_id 设置单独的每日上限，如被报警用户。留空或删除即使用全局上限。</p>
                 <div className="space-y-3">
                   {userCheckInLimits.map((row, idx) => (
                     <div key={idx} className="flex flex-wrap items-center gap-2">
@@ -279,9 +279,9 @@ export default function AppConfig() {
                           setUserCheckInLimits(next)
                         }}
                         placeholder="user_id"
-                        className="w-32 bg-slate-50 border-0 rounded-xl px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800 placeholder:text-slate-400"
+                        className="w-32 bg-cc-neutral-100 border-0 rounded-cc px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cc-primary outline-none text-cc-neutral-800 placeholder:text-cc-neutral-400"
                       />
-                      <span className="text-slate-400 text-sm">→</span>
+                      <span className="text-cc-neutral-500 text-sm">→</span>
                       <select
                         value={row.limit}
                         onChange={e => {
@@ -289,7 +289,7 @@ export default function AppConfig() {
                           next[idx] = { ...next[idx], limit: Number(e.target.value) }
                           setUserCheckInLimits(next)
                         }}
-                        className="bg-slate-50 border-0 rounded-xl px-3 py-2 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="bg-cc-neutral-100 border-0 rounded-cc px-3 py-2 text-sm font-medium text-cc-neutral-800 focus:ring-2 focus:ring-cc-primary outline-none"
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(n => (
                           <option key={n} value={n}>{n} 次/天</option>
@@ -298,7 +298,7 @@ export default function AppConfig() {
                       <button
                         type="button"
                         onClick={() => setUserCheckInLimits(userCheckInLimits.filter((_, i) => i !== idx))}
-                        className="p-2 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        className="p-2 rounded-lg text-cc-neutral-500 hover:bg-cc-error-bg hover:text-cc-error"
                         title="删除"
                       >
                         <Trash2 size={18} />
@@ -308,7 +308,7 @@ export default function AppConfig() {
                   <button
                     type="button"
                     onClick={() => setUserCheckInLimits([...userCheckInLimits, { userId: '', limit: 1 }])}
-                    className="flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-700"
+                    className="flex items-center gap-1.5 text-sm font-bold text-cc-primary hover:opacity-90"
                   >
                     <Plus size={16} /> 添加一条
                   </button>
@@ -316,9 +316,9 @@ export default function AppConfig() {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-              <h3 className="font-bold text-slate-800 mb-1">API Key 配置</h3>
-              <p className="text-xs text-slate-400 mb-4">在管理端配置后，可随时更换 Key，无需发版审核。留空则 App 使用内置兜底（仅智谱/通义有兜底）。</p>
+            <div className="bg-cc-surface rounded-cc-2xl border border-cc-border shadow-sm p-6">
+              <h3 className="font-bold text-cc-neutral-800 mb-1">API Key 配置</h3>
+              <p className="text-xs text-cc-neutral-500 mb-4">在管理端配置后，可随时更换 Key，无需发版审核。留空则 App 使用内置兜底（仅智谱/通义有兜底）。</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   { key: 'zhipu', label: '智谱', value: zhipuApiKey, set: setZhipuApiKey },
@@ -331,13 +331,13 @@ export default function AppConfig() {
                   { key: 'openai', label: 'ChatGPT', value: openaiApiKey, set: setOpenaiApiKey }
                 ].map(({ key, label, value, set }) => (
                   <div key={key}>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">{label} API Key</label>
+                    <label className="block text-xs font-bold text-cc-neutral-500 mb-1">{label} API Key</label>
                     <input
                       type="password"
                       value={value}
                       onChange={e => set(e.target.value)}
                       placeholder="留空则使用内置兜底"
-                      className="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-800 placeholder:text-slate-400 text-sm"
+                      className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 focus:ring-2 focus:ring-cc-primary outline-none font-mono text-cc-neutral-800 placeholder:text-cc-neutral-400 text-sm"
                       autoComplete="off"
                     />
                   </div>
@@ -348,7 +348,7 @@ export default function AppConfig() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-indigo-200 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-cc-primary hover:bg-cc-primary-hover text-white font-bold py-4 rounded-cc-xl disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
               {saving ? '保存中…' : '保存配置'}
