@@ -497,44 +497,44 @@ function AdminDashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-cc-neutral-50 flex items-center justify-center p-6">
-        <div className="bg-cc-surface rounded-cc-2xl shadow-lg p-10 w-full max-w-md border border-cc-border">
+      <div className="min-h-screen bg-cc-neutral-50 flex items-center justify-center p-8 md:p-12">
+        <div className="bg-cc-surface rounded-cc-2xl shadow-cc p-10 md:p-12 w-full max-w-[400px] border border-cc-border">
           <div className="flex flex-col items-center mb-10">
-            <div className="bg-cc-primary p-4 rounded-cc-xl text-white mb-4 shadow-lg">
-              <Wine size={40} />
+            <div className="bg-cc-primary/10 text-cc-primary p-4 rounded-cc-lg mb-5">
+              <Wine size={36} strokeWidth={1.5} />
             </div>
-            <h1 className="text-3xl font-extrabold text-cc-neutral-800 tracking-tight">CupCup Admin</h1>
-            <p className="text-cc-neutral-500 font-semibold text-sm mt-1 uppercase tracking-widest">后台管理中心</p>
+            <h1 className="text-2xl font-semibold text-cc-neutral-800 tracking-tight">CupCup Admin</h1>
+            <p className="text-cc-neutral-500 text-sm font-serif mt-1.5">后台管理中心</p>
           </div>
           
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-cc-neutral-500 uppercase tracking-widest mb-2 ml-1">管理员账号</label>
+              <label className="block text-xs font-medium text-cc-neutral-500 tracking-wide mb-1.5 ml-0.5">管理员账号</label>
               <input 
                 required
-                className="w-full bg-cc-neutral-100 border-2 border-transparent focus:border-cc-primary focus:bg-cc-surface rounded-cc-xl px-5 py-4 transition-all font-semibold text-cc-neutral-700 outline-none"
+                className="w-full bg-cc-neutral-50 border border-cc-border focus:border-cc-primary focus:ring-1 focus:ring-cc-primary/20 rounded-cc px-4 py-3 transition-all text-cc-neutral-800 placeholder:text-cc-neutral-400 outline-none"
                 placeholder="请输入 ID"
                 value={loginForm.id}
                 onChange={e => setLoginForm({...loginForm, id: e.target.value})}
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-cc-neutral-500 uppercase tracking-widest mb-2 ml-1">安全密码</label>
+              <label className="block text-xs font-medium text-cc-neutral-500 tracking-wide mb-1.5 ml-0.5">安全密码</label>
               <input 
                 required
                 type="password"
-                className="w-full bg-cc-neutral-100 border-2 border-transparent focus:border-cc-primary focus:bg-cc-surface rounded-cc-xl px-5 py-4 transition-all font-semibold text-cc-neutral-700 outline-none"
+                className="w-full bg-cc-neutral-50 border border-cc-border focus:border-cc-primary focus:ring-1 focus:ring-cc-primary/20 rounded-cc px-4 py-3 transition-all text-cc-neutral-800 placeholder:text-cc-neutral-400 outline-none"
                 placeholder="请输入密码"
                 value={loginForm.password}
                 onChange={e => setLoginForm({...loginForm, password: e.target.value})}
               />
             </div>
-            <button className="w-full bg-cc-primary hover:bg-cc-primary-hover text-white font-bold py-5 rounded-cc-xl transition-all hover:opacity-95 active:opacity-90">
+            <button className="w-full bg-cc-primary hover:bg-cc-primary-hover text-white font-medium py-3.5 rounded-cc transition-all">
               安全登录
             </button>
           </form>
           
-          <p className="text-center text-cc-neutral-400 text-xs font-semibold mt-10">© 2026 CupCup Technology Inc.</p>
+          <p className="text-center text-cc-neutral-400 text-xs font-serif mt-10">© 2026 CupCup Technology Inc.</p>
         </div>
       </div>
     )
@@ -658,10 +658,10 @@ function AdminDashboard() {
       )}
 
       {/* 顶部导航 */}
-      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-cc-primary p-2 rounded-cc text-white"><Wine size={24}/></div>
-          <h1 className="text-xl font-extrabold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
+      <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-cc-primary/10 text-cc-primary p-2 rounded-cc"><Wine size={22} strokeWidth={1.5}/></div>
+          <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">
           <Link

@@ -8,6 +8,12 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        serif: ['Lora', 'Georgia', 'Times New Roman', serif],
+      },
+      boxShadow: {
+        'cc-sm': '0 1px 2px oklch(0.2 0.02 85 / 0.04)',
+        'cc': '0 2px 8px oklch(0.2 0.02 85 / 0.06)',
+        'cc-lg': '0 4px 16px oklch(0.2 0.02 85 / 0.08)',
       },
       colors: {
         cc: {

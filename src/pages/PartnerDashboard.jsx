@@ -101,12 +101,12 @@ export default function PartnerDashboard() {
   return (
     <div className="min-h-screen bg-cc-neutral-50">
       {/* 顶部导航 */}
-      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-cc-primary p-2 rounded-cc text-white"><Wine size={24} /></div>
+      <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-cc-primary/10 text-cc-primary p-2 rounded-cc"><Wine size={22} strokeWidth={1.5} /></div>
           <div className="flex flex-col">
-            <h1 className="text-xl font-extrabold text-cc-neutral-800 tracking-tight">CupWorld Partner</h1>
-            <p className="text-xs font-semibold text-cc-neutral-500">商户仪表盘</p>
+            <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupWorld Partner</h1>
+            <p className="text-xs font-medium text-cc-neutral-500 font-serif">商户仪表盘</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

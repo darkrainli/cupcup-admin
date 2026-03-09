@@ -178,10 +178,10 @@ export default function AppConfig() {
 
   return (
     <div className="min-h-screen bg-cc-neutral-50 pb-20">
-      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-cc-primary p-2 rounded-cc text-white"><Wine size={24} /></div>
-          <h1 className="text-xl font-extrabold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
+      <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-cc-primary/10 text-cc-primary p-2 rounded-cc"><Wine size={22} strokeWidth={1.5} /></div>
+          <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xs font-bold text-cc-neutral-500 hover:text-cc-neutral-700">返回门店管理</Link>
@@ -196,10 +196,10 @@ export default function AppConfig() {
 
       <div className="max-w-2xl mx-auto px-6 py-10">
         <div className="flex items-center gap-2 mb-2">
-          <Settings className="text-cc-primary" size={24} />
-          <h2 className="text-2xl font-extrabold text-cc-neutral-800">App 配置</h2>
+          <Settings className="text-cc-primary" size={22} strokeWidth={1.5} />
+          <h2 className="text-xl font-semibold text-cc-neutral-800">App 配置</h2>
         </div>
-        <p className="text-cc-neutral-500 text-sm mb-8">配置杯子识别使用的大模型，不依赖 App 发版即可切换。</p>
+        <p className="text-cc-neutral-500 text-sm font-serif mb-8">配置杯子识别使用的大模型，不依赖 App 发版即可切换。</p>
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-cc-neutral-300" size={40} /></div>

@@ -115,15 +115,15 @@ export default function AuditActivities() {
 
   return (
     <div className="min-h-screen bg-cc-neutral-50">
-      <nav className="bg-cc-surface border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-sm">
+      <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-cc-neutral-500 hover:text-cc-primary flex items-center gap-2 font-bold">
-            <ArrowLeft size={20} /> 门店管理
+          <Link to="/" className="text-cc-neutral-500 hover:text-cc-primary flex items-center gap-2 font-medium">
+            <ArrowLeft size={18} strokeWidth={1.5} /> 门店管理
           </Link>
           <div className="h-5 w-px bg-cc-border" />
           <div className="flex items-center gap-2">
-            <div className="bg-cc-warning p-2 rounded-cc text-white"><FileText size={22} /></div>
-            <h1 className="text-xl font-extrabold text-cc-neutral-800">活动审核</h1>
+            <div className="bg-cc-warning/10 text-cc-warning p-2 rounded-cc"><FileText size={20} strokeWidth={1.5} /></div>
+            <h1 className="text-lg font-semibold text-cc-neutral-800">活动审核</h1>
           </div>
         </div>
       </nav>

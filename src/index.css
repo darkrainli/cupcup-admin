@@ -2,69 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CupCup 后台设计系统：浅色清爽、专业感，Admin / Partner 视觉统一 */
+/* Claude 官网风格：优雅、克制、高级 — 暖白底、暖灰、克制主色，Admin/Partner 统一 */
 :root {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* 主色：偏紫蓝，用于 CTA、链接、强调（约 260 色相），克制使用 */
-  --cc-primary: oklch(0.52 0.2 265);
-  --cc-primary-hover: oklch(0.46 0.2 265);
-  --cc-primary-muted: oklch(0.92 0.05 265);
-  --cc-primary-subtle: oklch(0.97 0.02 265);
+  /* 主色：温暖陶土感，克制使用（类似 Anthropic 的 Terra Cotta 取向） */
+  --cc-primary: oklch(0.58 0.14 45);
+  --cc-primary-hover: oklch(0.52 0.14 45);
+  --cc-primary-muted: oklch(0.92 0.04 45);
+  --cc-primary-subtle: oklch(0.97 0.02 45);
 
-  /* 中性色：带极淡冷灰 tint，浅色清爽、专业 */
-  --cc-neutral-50: oklch(0.985 0.004 260);
-  --cc-neutral-100: oklch(0.965 0.006 260);
-  --cc-neutral-200: oklch(0.92 0.008 260);
-  --cc-neutral-300: oklch(0.86 0.01 260);
-  --cc-neutral-400: oklch(0.6 0.015 260);
-  --cc-neutral-500: oklch(0.5 0.015 260);
-  --cc-neutral-600: oklch(0.42 0.015 260);
-  --cc-neutral-700: oklch(0.35 0.012 260);
-  --cc-neutral-800: oklch(0.26 0.01 260);
-  --cc-neutral-900: oklch(0.2 0.01 260);
+  /* 中性色：暖灰，偏米白/纸感（Claude 系 #faf9f5, #e8e6dc, #b0aea5） */
+  --cc-neutral-50: oklch(0.982 0.008 85);
+  --cc-neutral-100: oklch(0.96 0.01 85);
+  --cc-neutral-200: oklch(0.92 0.012 85);
+  --cc-neutral-300: oklch(0.86 0.014 85);
+  --cc-neutral-400: oklch(0.62 0.02 85);
+  --cc-neutral-500: oklch(0.5 0.02 85);
+  --cc-neutral-600: oklch(0.42 0.02 85);
+  --cc-neutral-700: oklch(0.35 0.018 85);
+  --cc-neutral-800: oklch(0.26 0.015 85);
+  --cc-neutral-900: oklch(0.14 0.012 85);
 
-  /* 语义色 */
-  --cc-success: oklch(0.55 0.18 145);
-  --cc-success-bg: oklch(0.95 0.04 145);
-  --cc-error: oklch(0.55 0.22 25);
-  --cc-error-bg: oklch(0.96 0.04 25);
-  --cc-warning: oklch(0.75 0.15 85);
-  --cc-warning-bg: oklch(0.97 0.04 85);
+  /* 语义色：保持清晰但不过艳 */
+  --cc-success: oklch(0.5 0.14 145);
+  --cc-success-bg: oklch(0.95 0.03 145);
+  --cc-error: oklch(0.52 0.18 25);
+  --cc-error-bg: oklch(0.96 0.03 25);
+  --cc-warning: oklch(0.72 0.12 85);
+  --cc-warning-bg: oklch(0.97 0.03 85);
 
-  /* 表面与边框 */
+  /* 表面与边框：极淡、细线 */
   --cc-surface: oklch(1 0 0);
-  --cc-surface-elevated: oklch(0.995 0.003 265);
-  --cc-border: oklch(0.91 0.01 265);
-  --cc-border-strong: oklch(0.82 0.015 265);
+  --cc-surface-elevated: oklch(0.995 0.004 85);
+  --cc-border: oklch(0.92 0.012 85);
+  --cc-border-strong: oklch(0.84 0.015 85);
 
-  /* 间距节奏（基于 4px，用 1.5 倍节奏） */
-  --cc-space-1: 0.25rem;
-  --cc-space-2: 0.5rem;
-  --cc-space-3: 0.75rem;
-  --cc-space-4: 1rem;
-  --cc-space-5: 1.25rem;
-  --cc-space-6: 1.5rem;
-  --cc-space-8: 2rem;
-  --cc-space-10: 2.5rem;
-  --cc-space-12: 3rem;
+  /* 圆角：略收敛，更克制 */
+  --cc-radius: 0.5rem;
+  --cc-radius-lg: 0.75rem;
+  --cc-radius-xl: 1rem;
+  --cc-radius-2xl: 1.25rem;
 
-  /* 圆角 */
-  --cc-radius: 0.75rem;
-  --cc-radius-lg: 1rem;
-  --cc-radius-xl: 1.25rem;
-  --cc-radius-2xl: 1.5rem;
+  /* 阴影：极轻 */
+  --cc-shadow-sm: 0 1px 2px oklch(0.2 0.02 85 / 0.04);
+  --cc-shadow: 0 2px 8px oklch(0.2 0.02 85 / 0.06);
+  --cc-shadow-lg: 0 4px 16px oklch(0.2 0.02 85 / 0.08);
 }
 
 body {
   margin: 0;
   background: var(--cc-neutral-50);
   color: var(--cc-neutral-800);
+  line-height: 1.6;
 }
 
-/* 焦点环：可见且符合对比度 */
+/* 正文/描述可用衬线，增加层次（可选 class font-serif） */
+.font-serif {
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+}
+
+/* 焦点环：柔和 */
 *:focus-visible {
   outline: 2px solid var(--cc-primary);
   outline-offset: 2px;
