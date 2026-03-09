@@ -180,7 +180,7 @@ export default function AppConfig() {
     <div className="min-h-screen bg-cc-neutral-50 pb-20">
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-2.5">
-          <div className="bg-cc-primary/10 text-cc-primary p-2 rounded-cc"><Wine size={22} strokeWidth={1.5} /></div>
+          <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">

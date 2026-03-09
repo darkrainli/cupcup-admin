@@ -365,9 +365,7 @@ export default function PartnerCreateActivity() {
           >
             <ArrowLeft size={22} />
           </button>
-          <div className="bg-cc-primary p-2 rounded-cc text-white">
-            <Wine size={22} />
-          </div>
+          <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
           <span className="font-bold text-cc-neutral-800">商户后台 · 发布活动</span>
         </div>
         <div className="flex items-center gap-3">

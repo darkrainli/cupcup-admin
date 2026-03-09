@@ -38,8 +38,8 @@ export default function PartnerLogin() {
       <div className="w-full max-w-[400px]">
         <div className="bg-cc-surface rounded-cc-2xl shadow-cc border border-cc-border p-10 md:p-12">
           <div className="flex flex-col items-center mb-10">
-            <div className="bg-cc-primary/10 text-cc-primary p-4 rounded-cc-lg mb-5">
-              <Wine size={36} strokeWidth={1.5} />
+            <div className="mb-5">
+              <img src="/logo.svg" alt="CupCup" className="w-12 h-12 rounded-cc-lg" />
             </div>
             <h1 className="text-2xl font-semibold text-cc-neutral-800 tracking-tight">商户后台</h1>
             <p className="text-cc-neutral-500 text-sm font-serif mt-1.5">CupWorld Partner · 邮箱登录</p>

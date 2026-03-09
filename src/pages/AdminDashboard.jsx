@@ -500,8 +500,8 @@ function AdminDashboard() {
       <div className="min-h-screen bg-cc-neutral-50 flex items-center justify-center p-8 md:p-12">
         <div className="bg-cc-surface rounded-cc-2xl shadow-cc p-10 md:p-12 w-full max-w-[400px] border border-cc-border">
           <div className="flex flex-col items-center mb-10">
-            <div className="bg-cc-primary/10 text-cc-primary p-4 rounded-cc-lg mb-5">
-              <Wine size={36} strokeWidth={1.5} />
+            <div className="mb-5">
+              <img src="/logo.svg" alt="CupCup" className="w-12 h-12 rounded-cc-lg" />
             </div>
             <h1 className="text-2xl font-semibold text-cc-neutral-800 tracking-tight">CupCup Admin</h1>
             <p className="text-cc-neutral-500 text-sm font-serif mt-1.5">后台管理中心</p>
@@ -660,7 +660,7 @@ function AdminDashboard() {
       {/* 顶部导航 */}
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-2.5">
-          <div className="bg-cc-primary/10 text-cc-primary p-2 rounded-cc"><Wine size={22} strokeWidth={1.5}/></div>
+          <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
         </div>
         <div className="flex items-center gap-4">
