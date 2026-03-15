@@ -342,6 +342,24 @@ function AdminDashboard() {
     e.preventDefault()
     
     if (photoItems.length === 0) return alert('请至少上传一张照片')
+
+    const latRaw = String(formData.latitude ?? '').trim()
+    const lonRaw = String(formData.longitude ?? '').trim()
+    if (!latRaw || !lonRaw) {
+      return alert('北纬和东经为必填项，未填写则不允许录入。')
+    }
+
+    const latitude = Number(latRaw)
+    const longitude = Number(lonRaw)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return alert('北纬/东经格式不正确，请输入数字。')
+    }
+    if (latitude < -90 || latitude > 90) {
+      return alert('北纬超出范围，请输入 -90 到 90 之间的数值。')
+    }
+    if (longitude < -180 || longitude > 180) {
+      return alert('东经超出范围，请输入 -180 到 180 之间的数值。')
+    }
     
     setIsSubmitting(true)
 
@@ -362,8 +380,8 @@ function AdminDashboard() {
         name: formData.name,
         category: formData.category,
         address: formData.address,
-        latitude: (formData.latitude !== '' && !isNaN(formData.latitude)) ? parseFloat(formData.latitude) : null,
-        longitude: (formData.longitude !== '' && !isNaN(formData.longitude)) ? parseFloat(formData.longitude) : null,
+        latitude,
+        longitude,
         description: formData.description,
         image_name: finalUrls[0], // 第一张作为封面（兼容旧逻辑）
         cover_image_url: finalUrls[0], // Admin 后台该酒吧的第一张封面图，与 schema 统一
@@ -734,13 +752,13 @@ function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-cc-neutral-500 mb-2">北纬 (Latitude)</label>
-                  <input type="number" step="any" className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
+                  <label className="block text-sm font-bold text-cc-neutral-500 mb-2">北纬 (Latitude) <span className="text-cc-error">*</span></label>
+                  <input required type="number" step="any" min="-90" max="90" className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                     value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="39.9324" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-cc-neutral-500 mb-2">东经 (Longitude)</label>
-                  <input type="number" step="any" className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
+                  <label className="block text-sm font-bold text-cc-neutral-500 mb-2">东经 (Longitude) <span className="text-cc-error">*</span></label>
+                  <input required type="number" step="any" min="-180" max="180" className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                     value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="116.4553" />
                 </div>
               </div>
