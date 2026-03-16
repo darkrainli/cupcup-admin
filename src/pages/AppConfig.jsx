@@ -66,6 +66,8 @@ export default function AppConfig() {
   const [openaiApiKey, setOpenaiApiKey] = useState('')
   const [dailyCheckInLimit, setDailyCheckInLimit] = useState('')
   const [userCheckInLimits, setUserCheckInLimits] = useState([])
+  const [dailyNfcCheckInLimit, setDailyNfcCheckInLimit] = useState('')
+  const [userNfcCheckInLimits, setUserNfcCheckInLimits] = useState([])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -80,7 +82,8 @@ export default function AppConfig() {
         'cup_llm_without_nfc', 'cup_llm_with_nfc',
         'zhipu_api_key', 'qwen_api_key', 'doubao_api_key', 'qianfan_api_key',
         'deepseek_api_key', 'claude_api_key', 'gemini_api_key', 'openai_api_key',
-        'daily_checkin_limit', 'user_checkin_limits'
+        'daily_checkin_limit', 'user_checkin_limits',
+        'daily_checkin_limit_nfc', 'user_checkin_limits_nfc'
       ]
       const { data, error: err } = await memFire
         .from('app_config')
@@ -102,6 +105,7 @@ export default function AppConfig() {
       setGeminiApiKey(map.gemini_api_key ?? '')
       setOpenaiApiKey(map.openai_api_key ?? '')
       setDailyCheckInLimit(map.daily_checkin_limit ?? '')
+      setDailyNfcCheckInLimit(map.daily_checkin_limit_nfc ?? '')
       try {
         const raw = map.user_checkin_limits ?? '{}'
         const obj = typeof raw === 'string' ? JSON.parse(raw || '{}') : raw
@@ -110,6 +114,15 @@ export default function AppConfig() {
         )
       } catch {
         setUserCheckInLimits([])
+      }
+      try {
+        const rawNfc = map.user_checkin_limits_nfc ?? '{}'
+        const objNfc = typeof rawNfc === 'string' ? JSON.parse(rawNfc || '{}') : rawNfc
+        setUserNfcCheckInLimits(
+          Object.entries(objNfc).map(([userId, limit]) => ({ userId: String(userId), limit: Number(limit) || 1 }))
+        )
+      } catch {
+        setUserNfcCheckInLimits([])
       }
     } catch (e) {
       setError('加载配置失败: ' + (e?.message || ''))
@@ -135,6 +148,7 @@ export default function AppConfig() {
     setSaving(true)
     const now = new Date().toISOString()
     const dailyLimitValue = dailyCheckInLimit === '0' ? '' : (dailyCheckInLimit || '')
+    const dailyNfcLimitValue = dailyNfcCheckInLimit === '0' ? '' : (dailyNfcCheckInLimit || '')
     const userLimitsObj = userCheckInLimits
       .filter(({ userId }) => String(userId).trim())
       .reduce((acc, { userId, limit }) => {
@@ -142,6 +156,13 @@ export default function AppConfig() {
         return acc
       }, {})
     const userCheckInLimitsValue = JSON.stringify(userLimitsObj)
+    const userNfcLimitsObj = userNfcCheckInLimits
+      .filter(({ userId }) => String(userId).trim())
+      .reduce((acc, { userId, limit }) => {
+        acc[String(userId).trim()] = Math.min(20, Math.max(1, Number(limit) || 1))
+        return acc
+      }, {})
+    const userNfcCheckInLimitsValue = JSON.stringify(userNfcLimitsObj)
     try {
       await memFire.from('app_config').upsert(
         [
@@ -156,7 +177,9 @@ export default function AppConfig() {
           { key: 'gemini_api_key', value: geminiApiKey.trim(), updated_at: now },
           { key: 'openai_api_key', value: openaiApiKey.trim(), updated_at: now },
           { key: 'daily_checkin_limit', value: dailyLimitValue, updated_at: now },
-          { key: 'user_checkin_limits', value: userCheckInLimitsValue, updated_at: now }
+          { key: 'user_checkin_limits', value: userCheckInLimitsValue, updated_at: now },
+          { key: 'daily_checkin_limit_nfc', value: dailyNfcLimitValue, updated_at: now },
+          { key: 'user_checkin_limits_nfc', value: userNfcCheckInLimitsValue, updated_at: now }
         ],
         { onConflict: 'key' }
       )
@@ -308,6 +331,77 @@ export default function AppConfig() {
                   <button
                     type="button"
                     onClick={() => setUserCheckInLimits([...userCheckInLimits, { userId: '', limit: 1 }])}
+                    className="flex items-center gap-1.5 text-sm font-bold text-cc-primary hover:opacity-90"
+                  >
+                    <Plus size={16} /> 添加一条
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-cc-surface rounded-cc-2xl border border-cc-border shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarCheck className="text-cc-primary" size={20} />
+                <h3 className="font-bold text-cc-neutral-800">NFC 打卡次数限制</h3>
+              </div>
+              <p className="text-xs text-cc-neutral-500 mb-4">仅对 NFC 打卡生效，和普通打卡限额分开计算。</p>
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-1">全局每日 NFC 打卡上限</label>
+                <select
+                  value={dailyNfcCheckInLimit === '0' ? '' : dailyNfcCheckInLimit}
+                  onChange={e => setDailyNfcCheckInLimit(e.target.value === '' ? '' : e.target.value)}
+                  className="w-full max-w-[220px] bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 focus:ring-2 focus:ring-cc-primary outline-none font-medium text-cc-neutral-800"
+                >
+                  <option value="">不设限</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(n => (
+                    <option key={n} value={String(n)}>{n} 次/天</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-2">指定用户 NFC 限次（覆盖全局）</label>
+                <p className="text-xs text-cc-neutral-500 mb-3">仅影响 NFC 打卡；普通打卡仍按上面的普通限额。</p>
+                <div className="space-y-3">
+                  {userNfcCheckInLimits.map((row, idx) => (
+                    <div key={idx} className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        value={row.userId}
+                        onChange={e => {
+                          const next = [...userNfcCheckInLimits]
+                          next[idx] = { ...next[idx], userId: e.target.value }
+                          setUserNfcCheckInLimits(next)
+                        }}
+                        placeholder="user_id"
+                        className="w-32 bg-cc-neutral-100 border-0 rounded-cc px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cc-primary outline-none text-cc-neutral-800 placeholder:text-cc-neutral-400"
+                      />
+                      <span className="text-cc-neutral-500 text-sm">→</span>
+                      <select
+                        value={row.limit}
+                        onChange={e => {
+                          const next = [...userNfcCheckInLimits]
+                          next[idx] = { ...next[idx], limit: Number(e.target.value) }
+                          setUserNfcCheckInLimits(next)
+                        }}
+                        className="bg-cc-neutral-100 border-0 rounded-cc px-3 py-2 text-sm font-medium text-cc-neutral-800 focus:ring-2 focus:ring-cc-primary outline-none"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(n => (
+                          <option key={n} value={n}>{n} 次/天</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setUserNfcCheckInLimits(userNfcCheckInLimits.filter((_, i) => i !== idx))}
+                        className="p-2 rounded-lg text-cc-neutral-500 hover:bg-cc-error-bg hover:text-cc-error"
+                        title="删除"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setUserNfcCheckInLimits([...userNfcCheckInLimits, { userId: '', limit: 1 }])}
                     className="flex items-center gap-1.5 text-sm font-bold text-cc-primary hover:opacity-90"
                   >
                     <Plus size={16} /> 添加一条
