@@ -6,6 +6,7 @@ import { usePartnerAuth } from '../context/PartnerAuthContext'
 import { memFire } from '../context/PartnerAuthContext'
 import {
   getLatestMerchantProfileRequest,
+  getLatestMerchantProfileRequestByPartnerAccount,
   submitMerchantProfileRequest
 } from '../lib/merchantProfileReviewService'
 
@@ -132,18 +133,20 @@ export default function PartnerMerchantProfile() {
   }, [cropModal.show, CropperComponent])
 
   const loadLatestRequest = useCallback(async () => {
-    if (!barId) return
+    if (!barId && !partnerAccount?.id) return
     setStatusLoading(true)
     setErrorMsg('')
     try {
-      const row = await getLatestMerchantProfileRequest(barId)
+      const row = barId
+        ? await getLatestMerchantProfileRequest(barId)
+        : await getLatestMerchantProfileRequestByPartnerAccount(partnerAccount?.id)
       setLatestRequest(row)
     } catch (err) {
       setErrorMsg(err?.message || '读取审核状态失败')
     } finally {
       setStatusLoading(false)
     }
-  }, [barId])
+  }, [barId, partnerAccount?.id])
 
   useEffect(() => {
     if (!barInfo) return
@@ -161,8 +164,8 @@ export default function PartnerMerchantProfile() {
   }, [barInfo])
 
   useEffect(() => {
-    if (barId) loadLatestRequest()
-  }, [barId, loadLatestRequest])
+    if (barId || partnerAccount?.id) loadLatestRequest()
+  }, [barId, partnerAccount?.id, loadLatestRequest])
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
@@ -227,7 +230,7 @@ export default function PartnerMerchantProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!barId) return
+    if (!barId && !partnerAccount?.id) return
     if (!formData.name.trim() || !formData.address.trim() || !formData.contact_phone.trim()) {
       alert('请先填写完整门店名称、地址和商户电话')
       return
@@ -258,11 +261,12 @@ export default function PartnerMerchantProfile() {
 
       await submitMerchantProfileRequest({
         barId,
-        requestType: 'update',
+        partnerAccountId: partnerAccount?.id || null,
+        requestType: barId ? 'update' : 'create',
         payload,
         submittedByEmail: partnerAccount?.email || ''
       })
-      await refreshBarInfo()
+      if (barId) await refreshBarInfo()
       await loadLatestRequest()
       alert('已提交审核，管理员处理后生效')
     } catch (err) {

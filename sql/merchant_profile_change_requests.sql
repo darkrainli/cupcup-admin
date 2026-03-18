@@ -3,7 +3,8 @@
 
 create table if not exists public.merchant_profile_change_requests (
   id uuid primary key default gen_random_uuid(),
-  bar_id uuid not null references public.bars(id) on delete cascade,
+  bar_id uuid references public.bars(id) on delete set null,
+  partner_account_id uuid references public.partner_accounts(id) on delete set null,
   request_type text not null default 'update' check (request_type in ('create', 'update')),
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   payload jsonb not null default '{}'::jsonb,
@@ -16,6 +17,7 @@ create table if not exists public.merchant_profile_change_requests (
 );
 
 create index if not exists idx_mpr_bar_id on public.merchant_profile_change_requests(bar_id);
+create index if not exists idx_mpr_partner_account_id on public.merchant_profile_change_requests(partner_account_id);
 create index if not exists idx_mpr_status on public.merchant_profile_change_requests(status);
 create index if not exists idx_mpr_created_at on public.merchant_profile_change_requests(created_at desc);
 

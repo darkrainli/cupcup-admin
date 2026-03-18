@@ -56,7 +56,7 @@ export default function MerchantProfileReviews() {
     setRejectReason(row?.review_comment || '')
     setErrorMsg('')
     try {
-      const bar = await getBarById(row.bar_id)
+      const bar = row?.bar_id ? await getBarById(row.bar_id) : null
       setBarInfo(bar)
       const payloadImages = Array.isArray(row?.payload?.detail_images) ? row.payload.detail_images : []
       const barImages = Array.isArray(bar?.detail_images) ? bar.detail_images : []
@@ -178,7 +178,9 @@ export default function MerchantProfileReviews() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-bold text-cc-neutral-800 truncate">{row?.payload?.name || '未命名门店'}</p>
-                    <p className="text-xs text-cc-neutral-500 mt-1 truncate">bar_id: {row.bar_id}</p>
+                    <p className="text-xs text-cc-neutral-500 mt-1 truncate">
+                      类型：{row.request_type === 'create' ? '新建门店' : '更新门店'} · bar_id: {row.bar_id || '待创建'}
+                    </p>
                     <p className="text-xs text-cc-neutral-500 mt-1">提交时间：{row.created_at ? new Date(row.created_at).toLocaleString() : '--'}</p>
                     <span className={`inline-flex items-center gap-1 mt-2 text-xs font-bold px-2 py-0.5 rounded-lg ${
                       row.status === 'approved' ? 'bg-cc-success-bg text-cc-success' : row.status === 'rejected' ? 'bg-cc-error-bg text-cc-error' : 'bg-cc-warning-bg text-cc-warning'

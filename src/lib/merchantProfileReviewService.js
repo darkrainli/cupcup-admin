@@ -30,8 +30,21 @@ export async function getLatestMerchantProfileRequest(barId) {
   if (!barId) return null
   const { data, error } = await memFire
     .from(REVIEW_TABLE)
-    .select('id, bar_id, request_type, status, payload, review_comment, created_at, updated_at')
+    .select('id, bar_id, partner_account_id, request_type, status, payload, review_comment, created_at, updated_at')
     .eq('bar_id', barId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  if (error) throw new Error(prettyMemfireError(error))
+  return data?.[0] ?? null
+}
+
+export async function getLatestMerchantProfileRequestByPartnerAccount(partnerAccountId) {
+  if (!partnerAccountId) return null
+  const { data, error } = await memFire
+    .from(REVIEW_TABLE)
+    .select('id, bar_id, partner_account_id, request_type, status, payload, review_comment, created_at, updated_at')
+    .eq('partner_account_id', partnerAccountId)
     .order('created_at', { ascending: false })
     .limit(1)
 
@@ -41,19 +54,24 @@ export async function getLatestMerchantProfileRequest(barId) {
 
 export async function submitMerchantProfileRequest({
   barId,
+  partnerAccountId,
   requestType = 'update',
   payload,
   submittedByEmail
 }) {
-  if (!barId) throw new Error('缺少门店 ID，无法提交审核')
+  if (!barId && !partnerAccountId) throw new Error('缺少门店或账号标识，无法提交审核')
   if (!payload || typeof payload !== 'object') throw new Error('提交内容为空')
 
-  const { data: pendingRows, error: pendingError } = await memFire
+  let pendingQuery = memFire
     .from(REVIEW_TABLE)
     .select('id, status')
-    .eq('bar_id', barId)
     .eq('status', 'pending')
     .limit(1)
+
+  if (barId) pendingQuery = pendingQuery.eq('bar_id', barId)
+  else pendingQuery = pendingQuery.eq('partner_account_id', partnerAccountId)
+
+  const { data: pendingRows, error: pendingError } = await pendingQuery
 
   if (pendingError) throw new Error(prettyMemfireError(pendingError))
   if (pendingRows?.length) throw new Error('已有待审核记录，请等待管理员处理后再提交')
@@ -61,13 +79,14 @@ export async function submitMerchantProfileRequest({
   const { data, error } = await memFire
     .from(REVIEW_TABLE)
     .insert([{
-      bar_id: barId,
+      bar_id: barId || null,
+      partner_account_id: partnerAccountId || null,
       request_type: requestType,
       status: 'pending',
       payload,
       submitted_by_email: submittedByEmail || null
     }])
-    .select('id, bar_id, request_type, status, payload, review_comment, created_at, updated_at')
+    .select('id, bar_id, partner_account_id, request_type, status, payload, review_comment, created_at, updated_at')
     .single()
 
   if (error) throw new Error(prettyMemfireError(error))
@@ -77,7 +96,7 @@ export async function submitMerchantProfileRequest({
 export async function listMerchantProfileRequests(status = '') {
   let query = memFire
     .from(REVIEW_TABLE)
-    .select('id, bar_id, request_type, status, payload, review_comment, submitted_by_email, reviewed_by, reviewed_at, created_at, updated_at')
+    .select('id, bar_id, partner_account_id, request_type, status, payload, review_comment, submitted_by_email, reviewed_by, reviewed_at, created_at, updated_at')
     .order('created_at', { ascending: false })
 
   if (status) query = query.eq('status', status)
@@ -102,7 +121,7 @@ export async function approveMerchantProfileRequest({
   appliedBarData,
   reviewer = 'admin'
 }) {
-  if (!request?.id || !request?.bar_id) throw new Error('审核单数据不完整')
+  if (!request?.id) throw new Error('审核单数据不完整')
   const latRaw = String(appliedBarData?.latitude ?? '').trim()
   const lonRaw = String(appliedBarData?.longitude ?? '').trim()
   if (!latRaw || !lonRaw) throw new Error('经纬度为空，不能通过审核')
@@ -112,7 +131,7 @@ export async function approveMerchantProfileRequest({
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) throw new Error('北纬范围无效')
   if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) throw new Error('东经范围无效')
 
-  const barPayload = {
+  const baseBarPayload = {
     name: appliedBarData?.name || '',
     category: appliedBarData?.category || '',
     address: appliedBarData?.address || '',
@@ -126,20 +145,45 @@ export async function approveMerchantProfileRequest({
     longitude
   }
 
-  if (!barPayload.cover_image_url && barPayload.detail_images.length > 0) {
-    barPayload.cover_image_url = barPayload.detail_images[0]
+  if (!baseBarPayload.cover_image_url && baseBarPayload.detail_images.length > 0) {
+    baseBarPayload.cover_image_url = baseBarPayload.detail_images[0]
   }
 
-  const { error: barError } = await memFire
-    .from('bars')
-    .update(barPayload)
-    .eq('id', request.bar_id)
+  let targetBarId = request.bar_id || null
 
-  if (barError) throw new Error(barError?.message || '写入门店失败')
+  if (targetBarId) {
+    const { error: barError } = await memFire
+      .from('bars')
+      .update(baseBarPayload)
+      .eq('id', targetBarId)
+    if (barError) throw new Error(barError?.message || '写入门店失败')
+  } else {
+    const insertPayload = {
+      ...baseBarPayload,
+      image_name: baseBarPayload.cover_image_url || ''
+    }
+    const { data: insertedBar, error: insertError } = await memFire
+      .from('bars')
+      .insert([insertPayload])
+      .select('id')
+      .single()
+    if (insertError) throw new Error(insertError?.message || '创建门店失败')
+    targetBarId = insertedBar?.id || null
+    if (!targetBarId) throw new Error('创建门店失败：未返回门店 ID')
+
+    if (request.partner_account_id) {
+      const { error: bindError } = await memFire
+        .from('partner_accounts')
+        .update({ bar_id: targetBarId })
+        .eq('id', request.partner_account_id)
+      if (bindError) throw new Error(bindError?.message || '绑定商户账号失败')
+    }
+  }
 
   const { error: reqError } = await memFire
     .from(REVIEW_TABLE)
     .update({
+      bar_id: targetBarId,
       status: 'approved',
       review_comment: null,
       reviewed_by: reviewer,
