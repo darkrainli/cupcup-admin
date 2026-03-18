@@ -25,6 +25,18 @@ export async function listPartnerAccounts() {
   return data || []
 }
 
+export async function getPartnerAccountByBarId(barId) {
+  if (!barId) return null
+  const { data, error } = await memFire
+    .from(TABLE)
+    .select('id, email, password, bar_id, created_at, updated_at')
+    .eq('bar_id', barId)
+    .limit(1)
+
+  if (error) throw new Error(prettyError(error))
+  return data?.[0] ?? null
+}
+
 export async function createPartnerAccount({ email, password }) {
   const emailTrim = (email || '').trim().toLowerCase()
   if (!emailTrim) throw new Error('请输入邮箱')
@@ -45,6 +57,55 @@ export async function createPartnerAccount({ email, password }) {
       email: emailTrim,
       password,
       bar_id: null
+    }])
+    .select('id, email, password, bar_id, created_at, updated_at')
+    .single()
+
+  if (error) throw new Error(prettyError(error))
+  return data
+}
+
+export async function upsertPartnerAccountForBar({ barId, email, password }) {
+  const emailTrim = (email || '').trim().toLowerCase()
+  if (!barId) throw new Error('缺少门店 ID')
+  if (!emailTrim) throw new Error('请输入邮箱')
+  if (!password || password.length < 6) throw new Error('密码至少 6 位')
+
+  const { data: existingByEmail, error: checkErr } = await memFire
+    .from(TABLE)
+    .select('id, bar_id')
+    .eq('email', emailTrim)
+    .limit(1)
+
+  if (checkErr) throw new Error(prettyError(checkErr))
+  if (existingByEmail?.length && existingByEmail[0].bar_id && existingByEmail[0].bar_id !== barId) {
+    throw new Error('该邮箱已绑定其他门店账号')
+  }
+
+  const { data: existingByBar, error: byBarErr } = await memFire
+    .from(TABLE)
+    .select('id')
+    .eq('bar_id', barId)
+    .limit(1)
+  if (byBarErr) throw new Error(prettyError(byBarErr))
+
+  if (existingByBar?.length) {
+    const { data, error } = await memFire
+      .from(TABLE)
+      .update({ email: emailTrim, password })
+      .eq('id', existingByBar[0].id)
+      .select('id, email, password, bar_id, created_at, updated_at')
+      .single()
+    if (error) throw new Error(prettyError(error))
+    return data
+  }
+
+  const { data, error } = await memFire
+    .from(TABLE)
+    .insert([{
+      email: emailTrim,
+      password,
+      bar_id: barId
     }])
     .select('id, email, password, bar_id, created_at, updated_at')
     .single()

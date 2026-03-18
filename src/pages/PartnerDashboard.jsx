@@ -39,7 +39,7 @@ function PieChartSvg({ totalSlots, actualVisit }) {
 
 export default function PartnerDashboard() {
   const navigate = useNavigate()
-  const { barId, barInfo, loading: authLoading, refreshBarInfo, isPartnerLoggedIn, logout } = usePartnerAuth()
+  const { barId, barInfo, partnerAccount, loading: authLoading, refreshBarInfo, isPartnerLoggedIn, logout } = usePartnerAuth()
 
   const [barDisplay, setBarDisplay] = useState(null)
   const [activitiesList, setActivitiesList] = useState([])
@@ -125,7 +125,7 @@ export default function PartnerDashboard() {
         barId,
         requestType: 'update',
         payload,
-        submittedByEmail: barDisplay?.owner_email || ''
+        submittedByEmail: partnerAccount?.email || ''
       })
       setLatestProfileReview(next)
     } catch (err) {

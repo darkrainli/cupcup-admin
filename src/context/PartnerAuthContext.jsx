@@ -1,6 +1,6 @@
 /**
  * 商户端鉴权上下文
- * 登录：用邮箱+密码与 bars 表的 owner_email / owner_password 校验，通过则缓存 bar_id / barInfo
+ * 登录主源：partner_accounts（bars.owner_* 仅做兼容迁移兜底）
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { memFire } from '../lib/memfire'
@@ -50,28 +50,20 @@ export function PartnerAuthProvider({ children }) {
     else localStorage.removeItem(STORAGE_PARTNER_ACCOUNT)
   }, [])
 
-  // 商户登录：用邮箱+密码与 bars 表的 owner_email、owner_password 校验，通过则缓存 bar_id
+  // 商户登录：先查 partner_accounts，bars.owner_* 仅做兼容兜底
   const login = useCallback(async (email, password) => {
     const emailTrim = (email || '').trim().toLowerCase()
     if (!emailTrim || !password) throw new Error('请输入邮箱和密码')
 
-    const { data: bars, error: barsError } = await memFire
-      .from('bars')
-      .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description')
-      .eq('owner_email', emailTrim)
-      .eq('owner_password', password)
+    const { data: accounts, error: accountError } = await memFire
+      .from('partner_accounts')
+      .select('id, email, bar_id')
+      .eq('email', emailTrim)
+      .eq('password', password)
       .limit(1)
+    if (accountError) throw accountError
 
-    if (barsError) throw barsError
-    if (!bars?.length) {
-      const { data: accounts, error: accountError } = await memFire
-        .from('partner_accounts')
-        .select('id, email, bar_id')
-        .eq('email', emailTrim)
-        .eq('password', password)
-        .limit(1)
-      if (accountError) throw accountError
-      if (!accounts?.length) throw new Error('邮箱或密码错误，请核对后重试')
+    if (accounts?.length) {
       const account = accounts[0]
       persistPartnerAccount({ id: account.id, email: account.email, bar_id: account.bar_id || null })
 
@@ -101,8 +93,29 @@ export function PartnerAuthProvider({ children }) {
       return { id: account.id, email: account.email, bar_id: account.bar_id || null }
     }
 
+    // 兼容旧账号：bars.owner_*，命中后自动迁移到 partner_accounts
+    const { data: bars, error: barsError } = await memFire
+      .from('bars')
+      .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description, owner_email, owner_password')
+      .eq('owner_email', emailTrim)
+      .eq('owner_password', password)
+      .limit(1)
+    if (barsError) throw barsError
+    if (!bars?.length) throw new Error('邮箱或密码错误，请核对后重试')
+
     const bar = bars[0]
-    persistPartnerAccount(null)
+    const { data: migratedAccount } = await memFire
+      .from('partner_accounts')
+      .upsert(
+        [{ email: emailTrim, password, bar_id: bar.id }],
+        { onConflict: 'email' }
+      )
+      .select('id, email, bar_id')
+      .single()
+    if (migratedAccount) {
+      persistPartnerAccount({ id: migratedAccount.id, email: migratedAccount.email, bar_id: migratedAccount.bar_id || bar.id })
+    }
+
     persistBar(bar.id, {
       id: bar.id,
       name: bar.name,

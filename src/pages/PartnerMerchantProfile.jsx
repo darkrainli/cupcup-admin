@@ -104,7 +104,7 @@ function PhotoItem({ item, index, isFirst, onRemove, onDragStart, onDrop, isDrag
 
 export default function PartnerMerchantProfile() {
   const navigate = useNavigate()
-  const { barId, barInfo, loading: authLoading, isPartnerLoggedIn, refreshBarInfo } = usePartnerAuth()
+  const { barId, barInfo, partnerAccount, loading: authLoading, isPartnerLoggedIn, refreshBarInfo } = usePartnerAuth()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -260,7 +260,7 @@ export default function PartnerMerchantProfile() {
         barId,
         requestType: 'update',
         payload,
-        submittedByEmail: barInfo?.owner_email || ''
+        submittedByEmail: partnerAccount?.email || ''
       })
       await refreshBarInfo()
       await loadLatestRequest()

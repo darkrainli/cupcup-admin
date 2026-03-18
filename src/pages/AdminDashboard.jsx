@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../lib/memfire'
+import {
+  generatePartnerPassword,
+  getPartnerAccountByBarId,
+  upsertPartnerAccountForBar
+} from '../lib/partnerAccountService'
 
 function moveItem(arr, fromIndex, toIndex) {
   const copy = [...arr]
@@ -166,6 +171,7 @@ function AdminDashboard() {
 
   // 生成/重置商户账号弹窗
   const [partnerAccountModal, setPartnerAccountModal] = useState({ show: false, bar: null })
+  const [currentPartnerAccount, setCurrentPartnerAccount] = useState(null)
   const [partnerEmail, setPartnerEmail] = useState('')
   const [partnerPassword, setPartnerPassword] = useState('')
   const [partnerSubmitting, setPartnerSubmitting] = useState(false)
@@ -461,22 +467,27 @@ function AdminDashboard() {
     else fetchBars()
   }
 
-  // 生成 8 位随机密码（避免 0/O、1/l 等易混字符）
-  const generatePartnerPassword = useCallback(() => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-    setPartnerPassword(Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''))
+  // 生成 10 位随机密码（避免 0/O、1/l 等易混字符）
+  const refillRandomPassword = useCallback(() => {
+    setPartnerPassword(generatePartnerPassword(10))
   }, [])
 
-  const openPartnerAccountModal = (bar) => {
+  const openPartnerAccountModal = async (bar) => {
     setPartnerAccountModal({ show: true, bar })
+    setCurrentPartnerAccount(null)
     setPartnerError('')
-    if (bar.owner_email || bar.owner_auth_id) {
-      setPartnerEmail(bar.owner_email || '')
-      setPartnerPassword(bar.owner_password || '')
-    } else {
-      setPartnerEmail('')
-      setPartnerPassword('')
-      generatePartnerPassword()
+    try {
+      const account = await getPartnerAccountByBarId(bar.id)
+      setCurrentPartnerAccount(account)
+      if (account) {
+        setPartnerEmail(account.email || '')
+        setPartnerPassword(account.password || '')
+      } else {
+        setPartnerEmail('')
+        setPartnerPassword(generatePartnerPassword(10))
+      }
+    } catch (err) {
+      setPartnerError(err?.message || '读取商户账号失败')
     }
   }
 
@@ -497,15 +508,12 @@ function AdminDashboard() {
     setPartnerSubmitting(true)
     setPartnerError('')
     try {
-      const { error: updateError } = await memFire
-        .from('bars')
-        .update({ owner_email: emailTrim, owner_password: password })
-        .eq('id', partnerAccountModal.bar.id)
-      if (updateError) {
-        setPartnerError('保存失败: ' + (updateError.message || ''))
-        setPartnerSubmitting(false)
-        return
-      }
+      const saved = await upsertPartnerAccountForBar({
+        barId: partnerAccountModal.bar.id,
+        email: emailTrim,
+        password
+      })
+      setCurrentPartnerAccount(saved)
       alert('已保存，商户可使用该邮箱和密码登录商户后台。')
       setPartnerAccountModal({ show: false, bar: null })
       fetchBars()
@@ -607,35 +615,14 @@ function AdminDashboard() {
         <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-6" onClick={() => !partnerSubmitting && setPartnerAccountModal({ show: false, bar: null })}>
           <div className="bg-cc-surface rounded-cc-2xl shadow-2xl w-full max-w-md p-8" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-cc-neutral-800 mb-2 flex items-center gap-2">
-              <UserPlus size={20} className="text-cc-success" /> {partnerAccountModal.bar.owner_email || partnerAccountModal.bar.owner_auth_id ? '商户登录账号' : '生成商户登录账号'}
+              <UserPlus size={20} className="text-cc-success" /> {currentPartnerAccount ? '商户登录账号' : '生成商户登录账号'}
             </h3>
             <p className="text-sm text-cc-neutral-500 mb-6">门店：{partnerAccountModal.bar.name}</p>
 
-            {(partnerAccountModal.bar.owner_email || partnerAccountModal.bar.owner_auth_id) ? (
-              /* 已绑定：只读显示 bars 表中的邮箱与密码，仅有关闭按钮 */
-              <div className="space-y-4">
-                <p className="text-sm text-cc-neutral-600">该门店已设置登录账号，以下为 bars 表中存储的邮箱与密码（只读）。</p>
-                <div>
-                  <label className="block text-xs font-bold text-cc-neutral-500 mb-1">登录邮箱</label>
-                  <input type="text" readOnly value={partnerAccountModal.bar.owner_email || ''} className="w-full bg-cc-neutral-100 rounded-cc px-4 py-3 border border-cc-border text-cc-neutral-800" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-cc-neutral-500 mb-1">登录密码</label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={partnerPassword}
-                    className="w-full bg-cc-neutral-100 rounded-cc px-4 py-3 border border-cc-border font-mono text-cc-neutral-800"
-                  />
-                </div>
-                <div className="pt-2">
-                  <button type="button" onClick={() => setPartnerAccountModal({ show: false, bar: null })} className="w-full bg-cc-neutral-100 text-cc-neutral-600 font-bold py-3 rounded-cc hover:bg-cc-neutral-200">
-                    关闭
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleCreatePartnerAccount} className="space-y-4">
+            <form onSubmit={handleCreatePartnerAccount} className="space-y-4">
+              {currentPartnerAccount ? (
+                <p className="text-sm text-cc-neutral-600">该门店已存在账号，你可以直接修改邮箱或重置密码后保存。</p>
+              ) : null}
                 <div>
                   <label className="block text-xs font-bold text-cc-neutral-500 mb-1">商户邮箱</label>
                   <input
@@ -654,10 +641,10 @@ function AdminDashboard() {
                       type="text"
                       value={partnerPassword}
                       onChange={e => setPartnerPassword(e.target.value)}
-                      placeholder="8 位或使用 CupWorld888"
+                      placeholder="至少 6 位"
                       className="flex-1 bg-cc-neutral-100 rounded-cc px-4 py-3 border-0 focus:ring-2 focus:ring-cc-primary outline-none"
                     />
-                    <button type="button" onClick={generatePartnerPassword} className="bg-cc-neutral-100 hover:bg-cc-neutral-200 text-cc-neutral-700 font-bold px-4 rounded-cc whitespace-nowrap">
+                    <button type="button" onClick={refillRandomPassword} className="bg-cc-neutral-100 hover:bg-cc-neutral-200 text-cc-neutral-700 font-bold px-4 rounded-cc whitespace-nowrap">
                       随机生成
                     </button>
                   </div>
@@ -669,11 +656,10 @@ function AdminDashboard() {
                   </button>
                   <button type="submit" disabled={partnerSubmitting} className="flex-1 bg-cc-success text-white font-bold py-3 rounded-cc hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
                     {partnerSubmitting ? <Loader2 className="animate-spin" size={18} /> : null}
-                    {partnerSubmitting ? '创建中…' : '创建并绑定'}
+                    {partnerSubmitting ? '保存中…' : (currentPartnerAccount ? '保存修改' : '创建并绑定')}
                   </button>
                 </div>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       )}
