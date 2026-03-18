@@ -159,6 +159,13 @@ export default function PartnerDashboard() {
         <div className="flex items-center gap-3">
           <button
             type="button"
+            onClick={() => navigate('/partner/merchant-profile')}
+            className="hidden sm:flex items-center gap-2 bg-cc-neutral-100 hover:bg-cc-neutral-200 text-cc-neutral-700 text-xs font-bold px-4 py-2 rounded-full"
+          >
+            门店信息编辑
+          </button>
+          <button
+            type="button"
             onClick={() => navigate('/partner/create-activity')}
             className="hidden sm:flex items-center gap-2 bg-cc-primary hover:bg-cc-primary-hover text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm"
           >
@@ -261,6 +268,22 @@ export default function PartnerDashboard() {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button
             type="button"
+            onClick={() => navigate('/partner/merchant-profile')}
+            className="bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-5 flex flex-col items-start gap-3 hover:border-cc-primary hover:shadow-md transition-all text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-cc-neutral-900 flex items-center justify-center text-white">
+              <MapPin size={20} strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-cc-neutral-800">门店信息编辑</h3>
+              <p className="text-xs text-cc-neutral-500 mt-1">
+                修改店铺名称、地址、电话与图片并提交审核。经纬度由平台审核时补全。
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
             onClick={() => navigate('/partner/create-activity')}
             className="bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-5 flex flex-col items-start gap-3 hover:border-cc-primary hover:shadow-md transition-all text-left"
           >
@@ -275,7 +298,7 @@ export default function PartnerDashboard() {
             </div>
           </button>
 
-          <div className="bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-5 flex flex-col gap-2 md:col-span-2">
+          <div className="bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-5 flex flex-col gap-2 md:col-span-1">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-cc-neutral-600 uppercase tracking-wider flex items-center gap-2">
                 <PieChart size={14} /> 最近活动概览

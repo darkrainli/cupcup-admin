@@ -9,6 +9,7 @@ import { PartnerAuthProvider } from './context/PartnerAuthContext'
 import PartnerLogin from './pages/PartnerLogin'
 import PartnerDashboard from './pages/PartnerDashboard'
 import PartnerCreateActivity from './pages/PartnerCreateActivity'
+import PartnerMerchantProfile from './pages/PartnerMerchantProfile'
 import AdminDashboard from './pages/AdminDashboard'
 import AuditActivities from './pages/AuditActivities'
 import AppConfig from './pages/AppConfig'
@@ -30,6 +31,7 @@ function App() {
           <Route path="/partner/login" element={<PartnerLogin />} />
           <Route path="/partner/dashboard" element={<PartnerDashboard />} />
           <Route path="/partner/create-activity" element={<PartnerCreateActivity />} />
+          <Route path="/partner/merchant-profile" element={<PartnerMerchantProfile />} />
           <Route path="/admin/audit-activities" element={<AuditActivities />} />
           <Route path="/admin/merchant-reviews" element={<MerchantProfileReviews />} />
           <Route path="/admin/app-config" element={<AppConfig />} />
