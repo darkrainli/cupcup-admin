@@ -58,6 +58,9 @@ export default function MerchantProfileReviews() {
     try {
       const bar = await getBarById(row.bar_id)
       setBarInfo(bar)
+      const payloadImages = Array.isArray(row?.payload?.detail_images) ? row.payload.detail_images : []
+      const barImages = Array.isArray(bar?.detail_images) ? bar.detail_images : []
+      const mergedImages = (payloadImages.length ? payloadImages : barImages).filter(Boolean).slice(0, 5)
       setEditForm({
         name: row?.payload?.name || bar?.name || '',
         category: row?.payload?.category || bar?.category || '',
@@ -65,6 +68,7 @@ export default function MerchantProfileReviews() {
         contact_phone: row?.payload?.contact_phone || bar?.contact_phone || '',
         description: row?.payload?.description || bar?.description || '',
         cover_image_url: row?.payload?.cover_image_url || bar?.cover_image_url || '',
+        detail_images: mergedImages.length ? mergedImages : ((row?.payload?.cover_image_url || bar?.cover_image_url) ? [row?.payload?.cover_image_url || bar?.cover_image_url] : []),
         latitude: String(bar?.latitude ?? ''),
         longitude: String(bar?.longitude ?? '')
       })
@@ -82,6 +86,7 @@ export default function MerchantProfileReviews() {
       contact_phone: barInfo?.contact_phone || '',
       description: barInfo?.description || '',
       cover_image_url: barInfo?.cover_image_url || '',
+      detail_images: Array.isArray(barInfo?.detail_images) ? barInfo.detail_images.slice(0, 5) : [],
       latitude: String(barInfo?.latitude ?? ''),
       longitude: String(barInfo?.longitude ?? '')
     }
@@ -249,18 +254,18 @@ export default function MerchantProfileReviews() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-cc-neutral-500 mb-2">商户提交封面图</label>
-                {editForm.cover_image_url ? (
-                  <div className="rounded-cc border border-cc-border overflow-hidden bg-cc-neutral-100">
-                    <img
-                      src={editForm.cover_image_url}
-                      alt="商户提交封面图"
-                      className="w-full max-h-72 object-cover"
-                    />
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-2">商户提交图片（最多 5 张）</label>
+                {Array.isArray(editForm.detail_images) && editForm.detail_images.length > 0 ? (
+                  <div className="grid grid-cols-5 gap-2">
+                    {editForm.detail_images.slice(0, 5).map((url, idx) => (
+                      <div key={`${url}-${idx}`} className="aspect-square rounded-cc border border-cc-border overflow-hidden bg-cc-neutral-100">
+                        <img src={url} alt={`商户提交图片${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="rounded-cc border border-dashed border-cc-border bg-cc-neutral-100/60 py-6 text-center text-xs text-cc-neutral-500">
-                    商户未提交封面图
+                    商户未提交图片
                   </div>
                 )}
               </div>

@@ -42,7 +42,7 @@ export function PartnerAuthProvider({ children }) {
 
     const { data: bars, error: barsError } = await memFire
       .from('bars')
-      .select('id, name, address, contact_phone, cover_image_url')
+      .select('id, name, address, contact_phone, cover_image_url, detail_images')
       .eq('owner_email', emailTrim)
       .eq('owner_password', password)
       .limit(1)
@@ -56,7 +56,8 @@ export function PartnerAuthProvider({ children }) {
       name: bar.name,
       address: bar.address ?? '',
       contact_phone: bar.contact_phone ?? '',
-      cover_image_url: bar.cover_image_url ?? ''
+      cover_image_url: bar.cover_image_url ?? '',
+      detail_images: Array.isArray(bar.detail_images) ? bar.detail_images : []
     })
     setUser({ id: bar.id })
     return bar
@@ -71,9 +72,17 @@ export function PartnerAuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false
     if (barId) {
-      memFire.from('bars').select('id, name, address, contact_phone, cover_image_url').eq('id', barId).single()
+      memFire.from('bars').select('id, name, address, contact_phone, cover_image_url, detail_images').eq('id', barId).single()
         .then(({ data }) => {
-          if (!cancelled && data) persistBar(data.id, { ...data, address: data.address ?? '', contact_phone: data.contact_phone ?? '', cover_image_url: data.cover_image_url ?? '' })
+          if (!cancelled && data) {
+            persistBar(data.id, {
+              ...data,
+              address: data.address ?? '',
+              contact_phone: data.contact_phone ?? '',
+              cover_image_url: data.cover_image_url ?? '',
+              detail_images: Array.isArray(data.detail_images) ? data.detail_images : []
+            })
+          }
         })
         .catch(() => {})
     }
@@ -85,11 +94,17 @@ export function PartnerAuthProvider({ children }) {
     if (!barId) return
     const { data, error } = await memFire
       .from('bars')
-      .select('id, name, address, contact_phone, cover_image_url')
+      .select('id, name, address, contact_phone, cover_image_url, detail_images')
       .eq('id', barId)
       .single()
     if (!error && data) {
-      const info = { ...data, address: data.address ?? '', contact_phone: data.contact_phone ?? '', cover_image_url: data.cover_image_url ?? '' }
+      const info = {
+        ...data,
+        address: data.address ?? '',
+        contact_phone: data.contact_phone ?? '',
+        cover_image_url: data.cover_image_url ?? '',
+        detail_images: Array.isArray(data.detail_images) ? data.detail_images : []
+      }
       setBarInfo(info)
       localStorage.setItem(STORAGE_BAR_INFO, JSON.stringify(info))
     }

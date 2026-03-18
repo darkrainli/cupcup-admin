@@ -11,12 +11,17 @@ function prettyMemfireError(error) {
 }
 
 export function buildPayloadFromBar(bar) {
+  const detailImages = Array.isArray(bar?.detail_images)
+    ? bar.detail_images.slice(0, 5)
+    : (bar?.cover_image_url ? [bar.cover_image_url] : [])
+
   return {
     name: bar?.name || '',
     category: bar?.category || '',
     address: bar?.address || '',
     contact_phone: bar?.contact_phone || '',
     cover_image_url: bar?.cover_image_url || '',
+    detail_images: detailImages,
     description: bar?.description || ''
   }
 }
@@ -113,9 +118,16 @@ export async function approveMerchantProfileRequest({
     address: appliedBarData?.address || '',
     contact_phone: appliedBarData?.contact_phone || '',
     cover_image_url: appliedBarData?.cover_image_url || '',
+    detail_images: Array.isArray(appliedBarData?.detail_images)
+      ? appliedBarData.detail_images.slice(0, 5)
+      : (appliedBarData?.cover_image_url ? [appliedBarData.cover_image_url] : []),
     description: appliedBarData?.description || '',
     latitude,
     longitude
+  }
+
+  if (!barPayload.cover_image_url && barPayload.detail_images.length > 0) {
+    barPayload.cover_image_url = barPayload.detail_images[0]
   }
 
   const { error: barError } = await memFire
