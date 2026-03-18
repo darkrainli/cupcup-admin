@@ -220,7 +220,7 @@ export default function PartnerDashboard() {
               </div>
             ) : (
               <div className="flex items-center justify-center text-cc-neutral-500 text-sm">
-                {authLoading ? '加载门店信息中…' : '尚未绑定门店，请联系管理员创建商户账号'}
+                {authLoading ? '加载门店信息中…' : '账号已开通但尚未绑定门店，请先进入门店信息编辑提交审核'}
               </div>
             )}
           </div>

@@ -703,6 +703,12 @@ function AdminDashboard() {
           >
             <FileText size={12} /> 商户审核
           </Link>
+          <Link
+            to="/admin/partner-accounts"
+            className="text-xs font-bold text-cc-success hover:opacity-90 bg-cc-success-bg px-3 py-1.5 rounded-full flex items-center gap-1.5"
+          >
+            <UserPlus size={12} /> 商户账号开通
+          </Link>
           <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
             <CheckCircle2 size={12}/> 已连接 MemFire
           </span>
