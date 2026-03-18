@@ -211,9 +211,6 @@ export default function MerchantProfileReviews() {
                 ['店面分类', 'category'],
                 ['详细地址', 'address'],
                 ['联系电话', 'contact_phone'],
-                ['北纬', 'latitude'],
-                ['东经', 'longitude'],
-                ['封面图 URL', 'cover_image_url'],
                 ['门店描述', 'description']
               ].map(([label, key]) => (
                 <div key={key} className={key === 'description' || key === 'cover_image_url' || key === 'address' ? 'md:col-span-2' : ''}>
@@ -226,6 +223,47 @@ export default function MerchantProfileReviews() {
                   <p className="text-[11px] text-cc-neutral-400 mt-1">当前生效值：{oldData?.[key] ? String(oldData[key]) : '—'}</p>
                 </div>
               ))}
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-1">北纬 / 东经</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <input
+                      value={editForm.latitude ?? ''}
+                      onChange={e => setEditForm(prev => ({ ...prev, latitude: e.target.value }))}
+                      className="w-full bg-cc-neutral-100 rounded-cc px-3 py-2 text-sm"
+                      placeholder="北纬，例如 39.9324"
+                    />
+                    <p className="text-[11px] text-cc-neutral-400 mt-1">当前北纬：{oldData?.latitude ? String(oldData.latitude) : '—'}</p>
+                  </div>
+                  <div>
+                    <input
+                      value={editForm.longitude ?? ''}
+                      onChange={e => setEditForm(prev => ({ ...prev, longitude: e.target.value }))}
+                      className="w-full bg-cc-neutral-100 rounded-cc px-3 py-2 text-sm"
+                      placeholder="东经，例如 116.4553"
+                    />
+                    <p className="text-[11px] text-cc-neutral-400 mt-1">当前东经：{oldData?.longitude ? String(oldData.longitude) : '—'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-cc-neutral-500 mb-2">商户提交封面图</label>
+                {editForm.cover_image_url ? (
+                  <div className="rounded-cc border border-cc-border overflow-hidden bg-cc-neutral-100">
+                    <img
+                      src={editForm.cover_image_url}
+                      alt="商户提交封面图"
+                      className="w-full max-h-72 object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-cc border border-dashed border-cc-border bg-cc-neutral-100/60 py-6 text-center text-xs text-cc-neutral-500">
+                    商户未提交封面图
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-4">
