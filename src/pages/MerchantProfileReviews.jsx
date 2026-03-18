@@ -120,6 +120,7 @@ export default function MerchantProfileReviews() {
     try {
       await rejectMerchantProfileRequest({
         requestId: detail.id,
+        request: detail,
         reason: rejectReason
       })
       setDetail(null)

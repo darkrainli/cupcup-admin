@@ -1,6 +1,7 @@
 import { memFire } from './memfire'
 
 const REVIEW_TABLE = 'merchant_profile_change_requests'
+const REVIEW_LOG_TABLE = 'merchant_profile_review_logs'
 
 function prettyMemfireError(error) {
   const msg = error?.message || ''
@@ -8,6 +9,38 @@ function prettyMemfireError(error) {
     return '缺少审核单数据表 merchant_profile_change_requests，请先建表'
   }
   return msg || '请求失败'
+}
+
+async function appendReviewLog({
+  requestId,
+  action,
+  operatorRole,
+  operatorId,
+  operatorEmail,
+  beforeStatus,
+  afterStatus,
+  comment,
+  requestType,
+  barId,
+  partnerAccountId
+}) {
+  try {
+    await memFire.from(REVIEW_LOG_TABLE).insert([{
+      request_id: requestId,
+      action,
+      operator_role: operatorRole || 'system',
+      operator_id: operatorId || null,
+      operator_email: operatorEmail || null,
+      before_status: beforeStatus || null,
+      after_status: afterStatus || null,
+      comment: comment || null,
+      request_type: requestType || null,
+      bar_id: barId || null,
+      partner_account_id: partnerAccountId || null
+    }])
+  } catch (error) {
+    console.warn('[merchant-profile-review-log] insert failed:', error?.message || error)
+  }
 }
 
 export function buildPayloadFromBar(bar) {
@@ -90,6 +123,19 @@ export async function submitMerchantProfileRequest({
     .single()
 
   if (error) throw new Error(prettyMemfireError(error))
+
+  await appendReviewLog({
+    requestId: data.id,
+    action: 'submit',
+    operatorRole: 'partner',
+    operatorEmail: submittedByEmail || null,
+    beforeStatus: null,
+    afterStatus: data.status,
+    requestType: data.request_type,
+    barId: data.bar_id,
+    partnerAccountId: data.partner_account_id
+  })
+
   return data
 }
 
@@ -192,10 +238,23 @@ export async function approveMerchantProfileRequest({
     .eq('id', request.id)
 
   if (reqError) throw new Error(prettyMemfireError(reqError))
+
+  await appendReviewLog({
+    requestId: request.id,
+    action: 'approve',
+    operatorRole: 'admin',
+    operatorId: reviewer || 'admin',
+    beforeStatus: request.status || 'pending',
+    afterStatus: 'approved',
+    requestType: request.request_type,
+    barId: targetBarId || request.bar_id,
+    partnerAccountId: request.partner_account_id
+  })
 }
 
 export async function rejectMerchantProfileRequest({
   requestId,
+  request,
   reason,
   reviewer = 'admin'
 }) {
@@ -213,4 +272,17 @@ export async function rejectMerchantProfileRequest({
     .eq('id', requestId)
 
   if (error) throw new Error(prettyMemfireError(error))
+
+  await appendReviewLog({
+    requestId,
+    action: 'reject',
+    operatorRole: 'admin',
+    operatorId: reviewer || 'admin',
+    beforeStatus: request?.status || 'pending',
+    afterStatus: 'rejected',
+    comment: trimmed,
+    requestType: request?.request_type,
+    barId: request?.bar_id,
+    partnerAccountId: request?.partner_account_id
+  })
 }

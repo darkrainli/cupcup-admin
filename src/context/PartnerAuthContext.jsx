@@ -1,6 +1,6 @@
 /**
  * 商户端鉴权上下文
- * 登录主源：partner_accounts（bars.owner_* 仅做兼容迁移兜底）
+ * 登录唯一来源：partner_accounts
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { memFire } from '../lib/memfire'
@@ -50,7 +50,7 @@ export function PartnerAuthProvider({ children }) {
     else localStorage.removeItem(STORAGE_PARTNER_ACCOUNT)
   }, [])
 
-  // 商户登录：先查 partner_accounts，bars.owner_* 仅做兼容兜底
+  // 商户登录：仅查 partner_accounts
   const login = useCallback(async (email, password) => {
     const emailTrim = (email || '').trim().toLowerCase()
     if (!emailTrim || !password) throw new Error('请输入邮箱和密码')
@@ -93,41 +93,7 @@ export function PartnerAuthProvider({ children }) {
       return { id: account.id, email: account.email, bar_id: account.bar_id || null }
     }
 
-    // 兼容旧账号：bars.owner_*，命中后自动迁移到 partner_accounts
-    const { data: bars, error: barsError } = await memFire
-      .from('bars')
-      .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description, owner_email, owner_password')
-      .eq('owner_email', emailTrim)
-      .eq('owner_password', password)
-      .limit(1)
-    if (barsError) throw barsError
-    if (!bars?.length) throw new Error('邮箱或密码错误，请核对后重试')
-
-    const bar = bars[0]
-    const { data: migratedAccount } = await memFire
-      .from('partner_accounts')
-      .upsert(
-        [{ email: emailTrim, password, bar_id: bar.id }],
-        { onConflict: 'email' }
-      )
-      .select('id, email, bar_id')
-      .single()
-    if (migratedAccount) {
-      persistPartnerAccount({ id: migratedAccount.id, email: migratedAccount.email, bar_id: migratedAccount.bar_id || bar.id })
-    }
-
-    persistBar(bar.id, {
-      id: bar.id,
-      name: bar.name,
-      category: bar.category ?? '鸡尾酒吧',
-      address: bar.address ?? '',
-      contact_phone: bar.contact_phone ?? '',
-      cover_image_url: bar.cover_image_url ?? '',
-      detail_images: Array.isArray(bar.detail_images) ? bar.detail_images : [],
-      description: bar.description ?? ''
-    })
-    setUser({ id: bar.id })
-    return bar
+    throw new Error('邮箱或密码错误，请核对后重试')
   }, [persistBar, persistPartnerAccount])
 
   const logout = useCallback(() => {
