@@ -155,6 +155,7 @@ function AdminDashboard() {
     name: '',
     category: '鸡尾酒吧',
     address: '',
+    contact_phone: '',
     latitude: '', 
     longitude: '', 
     description: ''
@@ -323,6 +324,7 @@ function AdminDashboard() {
       name: bar.name || '',
       category: ALL_CATEGORY_ITEMS.includes(bar.category) ? bar.category : '鸡尾酒吧',
       address: bar.address || '',
+      contact_phone: bar.contact_phone || '',
       latitude: bar.latitude || '',
       longitude: bar.longitude || '',
       description: bar.description || ''
@@ -334,7 +336,7 @@ function AdminDashboard() {
 
   const cancelEdit = () => {
     setEditingId(null)
-    setFormData({ name: '', category: '鸡尾酒吧', address: '', latitude: '', longitude: '', description: '' })
+    setFormData({ name: '', category: '鸡尾酒吧', address: '', contact_phone: '', latitude: '', longitude: '', description: '' })
     setPhotoItems([])
   }
 
@@ -380,6 +382,7 @@ function AdminDashboard() {
         name: formData.name,
         category: formData.category,
         address: formData.address,
+        contact_phone: formData.contact_phone,
         latitude,
         longitude,
         description: formData.description,
@@ -754,6 +757,17 @@ function AdminDashboard() {
                 <label className="block text-sm font-bold text-cc-neutral-500 mb-2">详细地址</label>
                 <input required className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3" 
                   value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="例如：北京市朝阳区..." />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-cc-neutral-500 mb-2">商户电话</label>
+                <input
+                  required
+                  className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3"
+                  value={formData.contact_phone}
+                  onChange={e => setFormData({...formData, contact_phone: e.target.value})}
+                  placeholder="例如：010-88886666 / 13800138000"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
