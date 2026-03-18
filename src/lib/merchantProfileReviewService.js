@@ -68,3 +68,93 @@ export async function submitMerchantProfileRequest({
   if (error) throw new Error(prettyMemfireError(error))
   return data
 }
+
+export async function listMerchantProfileRequests(status = '') {
+  let query = memFire
+    .from(REVIEW_TABLE)
+    .select('id, bar_id, request_type, status, payload, review_comment, submitted_by_email, reviewed_by, reviewed_at, created_at, updated_at')
+    .order('created_at', { ascending: false })
+
+  if (status) query = query.eq('status', status)
+  const { data, error } = await query
+  if (error) throw new Error(prettyMemfireError(error))
+  return data || []
+}
+
+export async function getBarById(barId) {
+  if (!barId) return null
+  const { data, error } = await memFire
+    .from('bars')
+    .select('*')
+    .eq('id', barId)
+    .single()
+  if (error) throw new Error(error?.message || '读取门店失败')
+  return data
+}
+
+export async function approveMerchantProfileRequest({
+  request,
+  appliedBarData,
+  reviewer = 'admin'
+}) {
+  if (!request?.id || !request?.bar_id) throw new Error('审核单数据不完整')
+  const latRaw = String(appliedBarData?.latitude ?? '').trim()
+  const lonRaw = String(appliedBarData?.longitude ?? '').trim()
+  if (!latRaw || !lonRaw) throw new Error('经纬度为空，不能通过审核')
+
+  const latitude = Number(latRaw)
+  const longitude = Number(lonRaw)
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) throw new Error('北纬范围无效')
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) throw new Error('东经范围无效')
+
+  const barPayload = {
+    name: appliedBarData?.name || '',
+    category: appliedBarData?.category || '',
+    address: appliedBarData?.address || '',
+    contact_phone: appliedBarData?.contact_phone || '',
+    cover_image_url: appliedBarData?.cover_image_url || '',
+    description: appliedBarData?.description || '',
+    latitude,
+    longitude
+  }
+
+  const { error: barError } = await memFire
+    .from('bars')
+    .update(barPayload)
+    .eq('id', request.bar_id)
+
+  if (barError) throw new Error(barError?.message || '写入门店失败')
+
+  const { error: reqError } = await memFire
+    .from(REVIEW_TABLE)
+    .update({
+      status: 'approved',
+      review_comment: null,
+      reviewed_by: reviewer,
+      reviewed_at: new Date().toISOString()
+    })
+    .eq('id', request.id)
+
+  if (reqError) throw new Error(prettyMemfireError(reqError))
+}
+
+export async function rejectMerchantProfileRequest({
+  requestId,
+  reason,
+  reviewer = 'admin'
+}) {
+  const trimmed = (reason || '').trim()
+  if (!trimmed) throw new Error('驳回原因不能为空')
+
+  const { error } = await memFire
+    .from(REVIEW_TABLE)
+    .update({
+      status: 'rejected',
+      review_comment: trimmed,
+      reviewed_by: reviewer,
+      reviewed_at: new Date().toISOString()
+    })
+    .eq('id', requestId)
+
+  if (error) throw new Error(prettyMemfireError(error))
+}
