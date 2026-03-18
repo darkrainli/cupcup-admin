@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import imageCompression from 'browser-image-compression'
-import { ArrowLeft, Loader2, MapPin, Phone, Store } from 'lucide-react'
+import { ArrowLeft, GripVertical, Loader2, MapPin, Phone, Scissors, Store } from 'lucide-react'
 import { usePartnerAuth } from '../context/PartnerAuthContext'
 import { memFire } from '../context/PartnerAuthContext'
 import {
@@ -35,6 +35,73 @@ function statusText(status) {
   return '待审核'
 }
 
+function moveItem(arr, fromIndex, toIndex) {
+  const copy = [...arr]
+  const [removed] = copy.splice(fromIndex, 1)
+  copy.splice(toIndex, 0, removed)
+  return copy
+}
+
+async function getCroppedImg(imageSrc, pixelCrop) {
+  const image = new Image()
+  image.src = imageSrc
+  await new Promise((resolve) => (image.onload = resolve))
+
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = pixelCrop.width
+  canvas.height = pixelCrop.height
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  )
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(new File([blob], 'partner_cropped.jpg', { type: 'image/jpeg' }))
+    }, 'image/jpeg', 0.92)
+  })
+}
+
+function PhotoItem({ item, index, isFirst, onRemove, onDragStart, onDrop, isDragging }) {
+  const src = item.type === 'existing' ? item.url : item.previewUrl
+  return (
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; onDragStart?.(index) }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+      onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain'), 10); if (from !== index) onDrop?.(from, index) }}
+      onDragEnd={() => onDragStart?.(null)}
+      className={`relative aspect-square rounded-cc border overflow-hidden bg-cc-neutral-100 cursor-grab active:cursor-grabbing ${isDragging ? 'ring-2 ring-cc-primary shadow-lg z-10' : 'border-cc-border'}`}
+    >
+      <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="absolute top-1 right-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded"
+      >
+        删除
+      </button>
+      <div className="absolute left-1 top-1 bg-white/85 rounded p-0.5 text-cc-neutral-700">
+        <GripVertical size={12} />
+      </div>
+      {isFirst ? (
+        <div className="absolute bottom-0 left-0 right-0 text-center text-[10px] font-bold py-0.5 bg-cc-primary/85 text-white">
+          封面图
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function PartnerMerchantProfile() {
   const navigate = useNavigate()
   const { barId, barInfo, loading: authLoading, isPartnerLoggedIn, refreshBarInfo } = usePartnerAuth()
@@ -47,10 +114,22 @@ export default function PartnerMerchantProfile() {
     description: ''
   })
   const [photoItems, setPhotoItems] = useState([])
+  const [photoDragIndex, setPhotoDragIndex] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
   const [latestRequest, setLatestRequest] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [cropModal, setCropModal] = useState({ show: false, image: null })
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [CropperComponent, setCropperComponent] = useState(null)
+
+  useEffect(() => {
+    if (cropModal.show && !CropperComponent) {
+      import('react-easy-crop').then((m) => setCropperComponent(() => m.default))
+    }
+  }, [cropModal.show, CropperComponent])
 
   const loadLatestRequest = useCallback(async () => {
     if (!barId) return
@@ -92,15 +171,34 @@ export default function PartnerMerchantProfile() {
       alert(`最多只能上传 ${MAX_IMAGES} 张图片`)
       return
     }
-
-    const compressed = await imageCompression(file, {
-      maxSizeMB: 0.3,
-      maxWidthOrHeight: 1280,
-      useWebWorker: true
-    })
-    const previewUrl = URL.createObjectURL(compressed)
-    setPhotoItems(prev => [...prev, { type: 'new', file: compressed, previewUrl }])
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => {
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+      setCropModal({ show: true, image: reader.result })
+    }
     e.target.value = ''
+  }
+
+  const onCropComplete = useCallback((_croppedArea, pixels) => {
+    setCroppedAreaPixels(pixels)
+  }, [])
+
+  const handleCropSave = async () => {
+    try {
+      let file = await getCroppedImg(cropModal.image, croppedAreaPixels)
+      file = await imageCompression(file, {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true
+      })
+      const previewUrl = URL.createObjectURL(file)
+      setPhotoItems(prev => [...prev, { type: 'new', file, previewUrl }])
+      setCropModal({ show: false, image: null })
+    } catch (err) {
+      alert(err?.message || '裁剪失败')
+    }
   }
 
   const removePhoto = (index) => {
@@ -112,6 +210,11 @@ export default function PartnerMerchantProfile() {
       return next
     })
   }
+
+  const handlePhotoDrop = useCallback((fromIndex, toIndex) => {
+    setPhotoItems(prev => moveItem(prev, fromIndex, toIndex))
+    setPhotoDragIndex(null)
+  }, [])
 
   const uploadFile = async (file, folder) => {
     const ext = file.name.split('.').pop() || 'jpg'
@@ -181,6 +284,35 @@ export default function PartnerMerchantProfile() {
 
   return (
     <div className="min-h-screen bg-cc-neutral-50">
+      {cropModal.show && (
+        <div className="fixed inset-0 z-[100] bg-black/40 flex flex-col items-center justify-center p-6">
+          <div className="relative w-full max-w-lg aspect-square bg-cc-neutral-100 rounded-cc-2xl overflow-hidden shadow-2xl border border-cc-border">
+            {CropperComponent ? (
+              <CropperComponent
+                image={cropModal.image}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin" size={30} /></div>
+            )}
+          </div>
+          <div className="mt-6 w-full max-w-lg flex items-center gap-4">
+            <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(e.target.value)} className="flex-1 accent-indigo-500" />
+            <button type="button" onClick={() => setCropModal({ show: false, image: null })} className="bg-cc-neutral-100 text-cc-neutral-700 px-4 py-2 rounded-cc font-bold">
+              取消
+            </button>
+            <button type="button" onClick={handleCropSave} className="bg-cc-primary text-white px-4 py-2 rounded-cc font-bold flex items-center gap-1">
+              <Scissors size={14} /> 保存裁剪
+            </button>
+          </div>
+        </div>
+      )}
+
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-3">
           <button
@@ -262,16 +394,16 @@ export default function PartnerMerchantProfile() {
               <label className="block text-sm font-bold text-cc-neutral-500 mb-2">店铺图片（最多 5 张）</label>
               <div className="grid grid-cols-5 gap-2">
                 {photoItems.map((item, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-cc border border-cc-border overflow-hidden bg-cc-neutral-100">
-                    <img src={item.type === 'existing' ? item.url : item.previewUrl} alt="" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(idx)}
-                      className="absolute top-1 right-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded"
-                    >
-                      删除
-                    </button>
-                  </div>
+                  <PhotoItem
+                    key={idx}
+                    item={item}
+                    index={idx}
+                    isFirst={idx === 0}
+                    onRemove={removePhoto}
+                    onDragStart={setPhotoDragIndex}
+                    onDrop={handlePhotoDrop}
+                    isDragging={photoDragIndex === idx}
+                  />
                 ))}
                 {photoItems.length < MAX_IMAGES && (
                   <label className="aspect-square rounded-cc border-2 border-dashed border-cc-border flex items-center justify-center text-xs text-cc-neutral-500 cursor-pointer">
