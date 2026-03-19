@@ -36,6 +36,43 @@ function statusText(status) {
   return '待审核'
 }
 
+function normalizePartnerError(message) {
+  const raw = String(message || '').trim()
+  if (!raw) {
+    return {
+      userMessage: '提交失败，请稍后重试。',
+      errorCode: 'E_PARTNER_SUBMIT_UNKNOWN',
+      raw: ''
+    }
+  }
+  if (raw.includes('已有待审核记录')) {
+    return {
+      userMessage: '你已经提交过一条待审核记录，请等管理员处理后再提交。',
+      errorCode: 'E_PARTNER_REVIEW_PENDING',
+      raw
+    }
+  }
+  if (raw.includes('violates foreign key constraint') && raw.includes('bar_id')) {
+    return {
+      userMessage: '当前门店绑定状态异常，请刷新页面后重试。',
+      errorCode: 'E_PARTNER_BAR_BINDING_INVALID',
+      raw
+    }
+  }
+  if (raw.includes('merchant_profile_change_requests')) {
+    return {
+      userMessage: '审核服务暂时不可用，请联系管理员检查审核表配置。',
+      errorCode: 'E_PARTNER_REVIEW_TABLE',
+      raw
+    }
+  }
+  return {
+    userMessage: '提交失败，请稍后重试。',
+    errorCode: 'E_PARTNER_SUBMIT_GENERIC',
+    raw
+  }
+}
+
 function moveItem(arr, fromIndex, toIndex) {
   const copy = [...arr]
   const [removed] = copy.splice(fromIndex, 1)
@@ -286,6 +323,10 @@ export default function PartnerMerchantProfile() {
     if (!first) return ''
     return first.type === 'existing' ? first.url : first.previewUrl
   }, [photoItems])
+  const partnerErrorView = useMemo(
+    () => (errorMsg ? normalizePartnerError(errorMsg) : null),
+    [errorMsg]
+  )
 
   if (!authLoading && !isPartnerLoggedIn) {
     return <Navigate to="/partner/login" replace />
@@ -423,7 +464,16 @@ export default function PartnerMerchantProfile() {
               </div>
             </div>
 
-            {errorMsg ? <p className="text-sm text-cc-error">{errorMsg}</p> : null}
+            {partnerErrorView ? (
+              <div className="rounded-cc border border-cc-error/20 bg-cc-error-bg/40 px-3 py-2">
+                <p className="text-sm text-cc-error font-medium">{partnerErrorView.userMessage}</p>
+                <p className="text-xs text-cc-error/80 mt-1">错误码：{partnerErrorView.errorCode}</p>
+                <details className="mt-2">
+                  <summary className="text-xs text-cc-neutral-500 cursor-pointer">查看技术详情</summary>
+                  <pre className="mt-1 text-[11px] text-cc-neutral-500 whitespace-pre-wrap break-all">{partnerErrorView.raw}</pre>
+                </details>
+              </div>
+            ) : null}
 
             <div className="pt-2">
               <button
