@@ -34,6 +34,16 @@ export function PartnerAuthProvider({ children }) {
   })
   const [loading, setLoading] = useState(true)
 
+  const normalizeBarInfo = useCallback((data) => ({
+    ...data,
+    category: data?.category ?? '鸡尾酒吧',
+    address: data?.address ?? '',
+    contact_phone: data?.contact_phone ?? '',
+    cover_image_url: data?.cover_image_url ?? '',
+    detail_images: Array.isArray(data?.detail_images) ? data.detail_images : [],
+    description: data?.description ?? ''
+  }), [])
+
   // 持久化 bar_id / barInfo
   const persistBar = useCallback((id, info) => {
     setBarId(id)
@@ -74,15 +84,7 @@ export function PartnerAuthProvider({ children }) {
           .eq('id', account.bar_id)
           .single()
         if (linkedBar) {
-          persistBar(linkedBar.id, {
-            ...linkedBar,
-            category: linkedBar.category ?? '鸡尾酒吧',
-            address: linkedBar.address ?? '',
-            contact_phone: linkedBar.contact_phone ?? '',
-            cover_image_url: linkedBar.cover_image_url ?? '',
-            detail_images: Array.isArray(linkedBar.detail_images) ? linkedBar.detail_images : [],
-            description: linkedBar.description ?? ''
-          })
+          persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
           setUser({ id: linkedBar.id })
           return linkedBar
         }
@@ -94,7 +96,7 @@ export function PartnerAuthProvider({ children }) {
     }
 
     throw new Error('邮箱或密码错误，请核对后重试')
-  }, [persistBar, persistPartnerAccount])
+  }, [persistBar, persistPartnerAccount, normalizeBarInfo])
 
   const logout = useCallback(() => {
     setUser(null)
@@ -102,42 +104,57 @@ export function PartnerAuthProvider({ children }) {
     persistPartnerAccount(null)
   }, [persistBar, persistPartnerAccount])
 
-  // 初始化：若有缓存的 bar_id 则仅刷新 bar 信息，登录态以 bars 表校验为准（无 Auth session 依赖）
+  const refreshPartnerSession = useCallback(async () => {
+    if (!partnerAccount?.id) return
+    const { data, error } = await memFire
+      .from('partner_accounts')
+      .select('id, email, bar_id')
+      .eq('id', partnerAccount.id)
+      .single()
+    if (error || !data) return
+
+    persistPartnerAccount({ id: data.id, email: data.email, bar_id: data.bar_id || null })
+    setUser({ id: data.bar_id || data.id })
+
+    if (!data.bar_id) {
+      if (barId) persistBar(null, null)
+      return
+    }
+
+    const { data: linkedBar } = await memFire
+      .from('bars')
+      .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description')
+      .eq('id', data.bar_id)
+      .single()
+    if (linkedBar) persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
+  }, [partnerAccount?.id, barId, persistBar, persistPartnerAccount, normalizeBarInfo])
+
+  // 初始化：若有缓存的 bar_id 则刷新 bar 信息；若仅有商户账号则同步绑定状态
   useEffect(() => {
     let cancelled = false
     if (barId) {
       memFire.from('bars').select('id, name, category, address, contact_phone, cover_image_url, detail_images, description').eq('id', barId).single()
         .then(({ data }) => {
           if (!cancelled && data) {
-            persistBar(data.id, {
-              ...data,
-              category: data.category ?? '鸡尾酒吧',
-              address: data.address ?? '',
-              contact_phone: data.contact_phone ?? '',
-              cover_image_url: data.cover_image_url ?? '',
-              detail_images: Array.isArray(data.detail_images) ? data.detail_images : [],
-              description: data.description ?? ''
-            })
+            persistBar(data.id, normalizeBarInfo(data))
           }
         })
         .catch(() => {})
     } else if (partnerAccount?.id) {
-      memFire
-        .from('partner_accounts')
-        .select('id, email, bar_id')
-        .eq('id', partnerAccount.id)
-        .single()
-        .then(({ data }) => {
-          if (!cancelled && data) {
-            persistPartnerAccount({ id: data.id, email: data.email, bar_id: data.bar_id || null })
-            setUser({ id: data.id })
-          }
-        })
-        .catch(() => {})
+      refreshPartnerSession().catch(() => {})
     }
     setLoading(false)
     return () => { cancelled = true }
-  }, [barId, partnerAccount?.id, persistBar, persistPartnerAccount])
+  }, [barId, partnerAccount?.id, persistBar, normalizeBarInfo, refreshPartnerSession])
+
+  // 未绑定门店时自动轮询绑定结果，审核通过后无需重新登录即可回显资料
+  useEffect(() => {
+    if (!partnerAccount?.id || barId) return undefined
+    const timer = setInterval(() => {
+      refreshPartnerSession().catch(() => {})
+    }, 10000)
+    return () => clearInterval(timer)
+  }, [partnerAccount?.id, barId, refreshPartnerSession])
 
   const refreshBarInfo = useCallback(async () => {
     if (!barId) return
@@ -147,19 +164,11 @@ export function PartnerAuthProvider({ children }) {
       .eq('id', barId)
       .single()
     if (!error && data) {
-      const info = {
-        ...data,
-        category: data.category ?? '鸡尾酒吧',
-        address: data.address ?? '',
-        contact_phone: data.contact_phone ?? '',
-        cover_image_url: data.cover_image_url ?? '',
-        detail_images: Array.isArray(data.detail_images) ? data.detail_images : [],
-        description: data.description ?? ''
-      }
+      const info = normalizeBarInfo(data)
       setBarInfo(info)
       localStorage.setItem(STORAGE_BAR_INFO, JSON.stringify(info))
     }
-  }, [barId])
+  }, [barId, normalizeBarInfo])
 
   const value = {
     user,
@@ -170,6 +179,7 @@ export function PartnerAuthProvider({ children }) {
     login,
     logout,
     refreshBarInfo,
+    refreshPartnerSession,
     isPartnerLoggedIn: !!(barId || partnerAccount?.id)
   }
 

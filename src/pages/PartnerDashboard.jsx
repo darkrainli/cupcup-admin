@@ -39,7 +39,7 @@ function PieChartSvg({ totalSlots, actualVisit }) {
 
 export default function PartnerDashboard() {
   const navigate = useNavigate()
-  const { barId, barInfo, partnerAccount, loading: authLoading, refreshBarInfo, isPartnerLoggedIn, logout } = usePartnerAuth()
+  const { barId, barInfo, partnerAccount, loading: authLoading, refreshBarInfo, refreshPartnerSession, isPartnerLoggedIn, logout } = usePartnerAuth()
 
   const [barDisplay, setBarDisplay] = useState(null)
   const [activitiesList, setActivitiesList] = useState([])
@@ -64,7 +64,8 @@ export default function PartnerDashboard() {
 
   useEffect(() => {
     if (barId) refreshBarInfo()
-  }, [barId, refreshBarInfo])
+    else if (partnerAccount?.id) refreshPartnerSession()
+  }, [barId, partnerAccount?.id, refreshBarInfo, refreshPartnerSession])
 
   const fetchActivitiesList = useCallback(async () => {
     if (!barId) return

@@ -105,7 +105,7 @@ function PhotoItem({ item, index, isFirst, onRemove, onDragStart, onDrop, isDrag
 
 export default function PartnerMerchantProfile() {
   const navigate = useNavigate()
-  const { barId, barInfo, partnerAccount, loading: authLoading, isPartnerLoggedIn, refreshBarInfo } = usePartnerAuth()
+  const { barId, barInfo, partnerAccount, loading: authLoading, isPartnerLoggedIn, refreshBarInfo, refreshPartnerSession } = usePartnerAuth()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -162,6 +162,10 @@ export default function PartnerMerchantProfile() {
       : (barInfo?.cover_image_url ? [barInfo.cover_image_url] : [])
     setPhotoItems(imgs.slice(0, MAX_IMAGES).map(url => ({ type: 'existing', url })))
   }, [barInfo])
+
+  useEffect(() => {
+    if (!barId && partnerAccount?.id) refreshPartnerSession()
+  }, [barId, partnerAccount?.id, refreshPartnerSession])
 
   useEffect(() => {
     if (barId || partnerAccount?.id) loadLatestRequest()
