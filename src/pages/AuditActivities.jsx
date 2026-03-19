@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { memFire } from '../lib/memfire'
-import { Loader2, CheckCircle2, XCircle, ArrowLeft, FileText, Calendar, X, AlertCircle, Users } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, ArrowLeft, FileText, Calendar, X, AlertCircle, Users, Ticket } from 'lucide-react'
 
 export default function AuditActivities() {
   const [list, setList] = useState([])
@@ -122,7 +122,7 @@ export default function AuditActivities() {
           </Link>
           <div className="h-5 w-px bg-cc-border" />
           <div className="flex items-center gap-2">
-            <div className="bg-cc-warning/10 text-cc-warning p-2 rounded-cc"><FileText size={20} strokeWidth={1.5} /></div>
+            <div className="bg-violet-100 text-violet-700 p-2 rounded-cc"><Ticket size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">活动审核</h1>
           </div>
         </div>

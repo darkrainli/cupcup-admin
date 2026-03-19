@@ -207,7 +207,9 @@ export default function AppConfig() {
             <ArrowLeft size={18} strokeWidth={1.5} /> CupCup管理首页
           </Link>
           <div className="h-5 w-px bg-cc-border" />
-          <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
+          <div className="bg-slate-100 text-slate-700 p-2 rounded-cc">
+            <Settings size={20} strokeWidth={1.5} />
+          </div>
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">App 配置</h1>
         </div>
         <div className="flex items-center gap-4">

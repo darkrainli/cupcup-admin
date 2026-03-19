@@ -671,7 +671,9 @@ function AdminDashboard() {
             <ArrowLeft size={18} strokeWidth={1.5} /> CupCup管理首页
           </Link>
           <div className="h-5 w-px bg-cc-border" />
-          <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
+          <div className="bg-cc-primary-subtle text-cc-primary p-2 rounded-cc">
+            <MapPin size={20} strokeWidth={1.5} />
+          </div>
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">录入店铺</h1>
         </div>
         <div className="flex items-center gap-4">
