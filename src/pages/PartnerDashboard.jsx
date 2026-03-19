@@ -39,7 +39,7 @@ function PieChartSvg({ totalSlots, actualVisit }) {
 
 export default function PartnerDashboard() {
   const navigate = useNavigate()
-  const { barId, barInfo, partnerAccount, loading: authLoading, refreshBarInfo, refreshPartnerSession, isPartnerLoggedIn, logout } = usePartnerAuth()
+  const { barId, barInfo, barRemovedByAdmin, partnerAccount, loading: authLoading, refreshBarInfo, refreshPartnerSession, isPartnerLoggedIn, logout } = usePartnerAuth()
 
   const [barDisplay, setBarDisplay] = useState(null)
   const [activitiesList, setActivitiesList] = useState([])
@@ -186,6 +186,14 @@ export default function PartnerDashboard() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {barRemovedByAdmin ? (
+          <div className="rounded-cc-xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-800">
+              当前门店已被官方移除。请前往「门店信息编辑」创建新的店铺信息并提交审核。
+            </p>
+          </div>
+        ) : null}
+
         {/* 上半部分：当前门店 + 到店转化 + 本店打卡人数 */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="bg-cc-surface rounded-cc-xl shadow-sm border border-cc-border p-6 flex flex-col gap-4 lg:col-span-2">
@@ -221,7 +229,11 @@ export default function PartnerDashboard() {
               </div>
             ) : (
               <div className="flex items-center justify-center text-cc-neutral-500 text-sm">
-                {authLoading ? '加载门店信息中…' : '账号已开通但尚未绑定门店，请先进入门店信息编辑提交审核'}
+                {authLoading
+                  ? '加载门店信息中…'
+                  : (barRemovedByAdmin
+                    ? '该门店资料已被官方移除，请重新创建并提交审核'
+                    : '账号已开通但尚未绑定门店，请先进入门店信息编辑提交审核')}
               </div>
             )}
           </div>

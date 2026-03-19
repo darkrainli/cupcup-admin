@@ -10,6 +10,7 @@ export { memFire }
 const STORAGE_BAR_ID = 'partner_bar_id'
 const STORAGE_BAR_INFO = 'partner_bar_info'
 const STORAGE_PARTNER_ACCOUNT = 'partner_account'
+const STORAGE_BAR_REMOVED_BY_ADMIN = 'partner_bar_removed_by_admin'
 
 const PartnerAuthContext = createContext(null)
 
@@ -33,6 +34,7 @@ export function PartnerAuthProvider({ children }) {
     }
   })
   const [loading, setLoading] = useState(true)
+  const [barRemovedByAdmin, setBarRemovedByAdmin] = useState(() => localStorage.getItem(STORAGE_BAR_REMOVED_BY_ADMIN) === 'true')
 
   const normalizeBarInfo = useCallback((data) => ({
     ...data,
@@ -60,6 +62,12 @@ export function PartnerAuthProvider({ children }) {
     else localStorage.removeItem(STORAGE_PARTNER_ACCOUNT)
   }, [])
 
+  const persistBarRemovedByAdmin = useCallback((value) => {
+    setBarRemovedByAdmin(Boolean(value))
+    if (value) localStorage.setItem(STORAGE_BAR_REMOVED_BY_ADMIN, 'true')
+    else localStorage.removeItem(STORAGE_BAR_REMOVED_BY_ADMIN)
+  }, [])
+
   // 商户登录：仅查 partner_accounts
   const login = useCallback(async (email, password) => {
     const emailTrim = (email || '').trim().toLowerCase()
@@ -85,9 +93,14 @@ export function PartnerAuthProvider({ children }) {
           .single()
         if (linkedBar) {
           persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
+          persistBarRemovedByAdmin(false)
           setUser({ id: linkedBar.id })
           return linkedBar
         }
+
+        // 账号绑定的门店已被删除：清理绑定并打标，提示商户重新创建门店资料
+        await memFire.from('partner_accounts').update({ bar_id: null }).eq('id', account.id)
+        persistBarRemovedByAdmin(true)
       }
 
       persistBar(null, null)
@@ -102,7 +115,8 @@ export function PartnerAuthProvider({ children }) {
     setUser(null)
     persistBar(null, null)
     persistPartnerAccount(null)
-  }, [persistBar, persistPartnerAccount])
+    persistBarRemovedByAdmin(false)
+  }, [persistBar, persistPartnerAccount, persistBarRemovedByAdmin])
 
   const refreshPartnerSession = useCallback(async () => {
     if (!partnerAccount?.id) return
@@ -128,11 +142,14 @@ export function PartnerAuthProvider({ children }) {
       .single()
     if (linkedBar) {
       persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
+      persistBarRemovedByAdmin(false)
     } else {
       // 账号绑定了不存在的门店 ID（脏数据），自动降级为未绑定状态，避免后续外键报错
+      await memFire.from('partner_accounts').update({ bar_id: null }).eq('id', data.id)
       persistBar(null, null)
+      persistBarRemovedByAdmin(true)
     }
-  }, [partnerAccount?.id, barId, persistBar, persistPartnerAccount, normalizeBarInfo])
+  }, [partnerAccount?.id, barId, persistBar, persistPartnerAccount, normalizeBarInfo, persistBarRemovedByAdmin])
 
   // 初始化：若有缓存的 bar_id 则刷新 bar 信息；若仅有商户账号则同步绑定状态
   useEffect(() => {
@@ -179,6 +196,7 @@ export function PartnerAuthProvider({ children }) {
     user,
     barId,
     barInfo,
+    barRemovedByAdmin,
     partnerAccount,
     loading,
     login,

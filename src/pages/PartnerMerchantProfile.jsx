@@ -142,7 +142,7 @@ function PhotoItem({ item, index, isFirst, onRemove, onDragStart, onDrop, isDrag
 
 export default function PartnerMerchantProfile() {
   const navigate = useNavigate()
-  const { barId, barInfo, partnerAccount, loading: authLoading, isPartnerLoggedIn, refreshBarInfo, refreshPartnerSession } = usePartnerAuth()
+  const { barId, barInfo, barRemovedByAdmin, partnerAccount, loading: authLoading, isPartnerLoggedIn, refreshBarInfo, refreshPartnerSession } = usePartnerAuth()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -381,6 +381,11 @@ export default function PartnerMerchantProfile() {
         <section className="lg:col-span-3 bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-6">
           <h2 className="text-lg font-bold text-cc-neutral-800 mb-1">提交店铺资料审核</h2>
           <p className="text-xs text-cc-neutral-500 mb-5">商户端无需填写经纬度，定位信息由平台审核时补全。</p>
+          {barRemovedByAdmin ? (
+            <div className="mb-5 rounded-cc border border-amber-300 bg-amber-50 px-3 py-2">
+              <p className="text-sm font-semibold text-amber-800">该资料已被官方移除，请创建新的店铺信息后再提交审核。</p>
+            </div>
+          ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -481,7 +486,7 @@ export default function PartnerMerchantProfile() {
                 disabled={submitting}
                 className="bg-cc-primary text-white px-5 py-3 rounded-cc font-bold disabled:opacity-50"
               >
-                {submitting ? '提交中…' : '提交审核'}
+                {submitting ? '提交中…' : (barId ? '提交审核' : '提交新店审核')}
               </button>
             </div>
           </form>
