@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings, ArrowLeft } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../lib/memfire'
@@ -141,6 +141,7 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 
 /** 管理员后台：门店录入/编辑、酒吧列表（与 Partner 商户端分离） */
 function AdminDashboard() {
+  const navigate = useNavigate()
   const [isAuthenticated, setIsAuthenticated] = useState(isAdminAuthenticated())
   const [loginForm, setLoginForm] = useState({ id: '', password: '' })
   const [loginError, setLoginError] = useState('')
@@ -199,9 +200,16 @@ function AdminDashboard() {
     setLoginError('')
     setLoggingIn(true)
     try {
-      const account = await loginAdmin({ loginId: loginForm.id, password: loginForm.password })
+      const account = await loginAdmin({
+        loginId: loginForm.id,
+        password: loginForm.password,
+        context: {
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
+        }
+      })
       setAdminSession(account)
       setIsAuthenticated(true)
+      navigate('/admin/dashboard', { replace: true })
     } catch (error) {
       setLoginError(error?.message || '登录失败，请稍后重试')
     } finally {
@@ -570,6 +578,7 @@ function AdminDashboard() {
               {loggingIn ? '登录中…' : '安全登录'}
             </button>
             {loginError ? <p className="text-sm text-cc-error">{loginError}</p> : null}
+            <p className="text-xs text-cc-neutral-400">连续输错 5 次将锁定 15 分钟，并记录登录审计日志</p>
           </form>
           
           <p className="text-center text-cc-neutral-400 text-xs font-serif mt-10">© 2026 CupCup Technology Inc.</p>
