@@ -126,7 +126,12 @@ export function PartnerAuthProvider({ children }) {
       .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description')
       .eq('id', data.bar_id)
       .single()
-    if (linkedBar) persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
+    if (linkedBar) {
+      persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
+    } else {
+      // 账号绑定了不存在的门店 ID（脏数据），自动降级为未绑定状态，避免后续外键报错
+      persistBar(null, null)
+    }
   }, [partnerAccount?.id, barId, persistBar, persistPartnerAccount, normalizeBarInfo])
 
   // 初始化：若有缓存的 bar_id 则刷新 bar 信息；若仅有商户账号则同步绑定状态

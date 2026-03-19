@@ -247,6 +247,7 @@ export default function PartnerMerchantProfile() {
     setSubmitting(true)
     setErrorMsg('')
     try {
+      const effectiveBarId = barInfo?.id || null
       const detailImages = []
       for (const item of photoItems.slice(0, MAX_IMAGES)) {
         if (item.type === 'existing') detailImages.push(item.url)
@@ -264,13 +265,13 @@ export default function PartnerMerchantProfile() {
       }
 
       await submitMerchantProfileRequest({
-        barId,
+        barId: effectiveBarId,
         partnerAccountId: partnerAccount?.id || null,
-        requestType: barId ? 'update' : 'create',
+        requestType: effectiveBarId ? 'update' : 'create',
         payload,
         submittedByEmail: partnerAccount?.email || ''
       })
-      if (barId) await refreshBarInfo()
+      if (effectiveBarId) await refreshBarInfo()
       await loadLatestRequest()
       alert('已提交审核，管理员处理后生效')
     } catch (err) {
