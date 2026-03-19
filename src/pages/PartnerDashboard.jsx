@@ -7,11 +7,6 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { Wine, MapPin, Phone, PieChart, Hash, Loader2, UserCheck, Ticket } from 'lucide-react'
 import { usePartnerAuth } from '../context/PartnerAuthContext'
 import { memFire } from '../context/PartnerAuthContext'
-import {
-  buildPayloadFromBar,
-  getLatestMerchantProfileRequest,
-  submitMerchantProfileRequest
-} from '../lib/merchantProfileReviewService'
 
 // 到店转化饼图，与 PartnerCreateActivity 中保持视觉一致
 function PieChartSvg({ totalSlots, actualVisit }) {
@@ -46,10 +41,6 @@ export default function PartnerDashboard() {
   const [activitiesLoading, setActivitiesLoading] = useState(false)
   const [checkInCount, setCheckInCount] = useState(null)
   const [checkInCountLoading, setCheckInCountLoading] = useState(false)
-  const [latestProfileReview, setLatestProfileReview] = useState(null)
-  const [reviewLoading, setReviewLoading] = useState(false)
-  const [reviewSubmitting, setReviewSubmitting] = useState(false)
-  const [reviewError, setReviewError] = useState('')
 
   // 未登录商户则跳转登录
   if (!authLoading && !isPartnerLoggedIn) {
@@ -97,44 +88,6 @@ export default function PartnerDashboard() {
   useEffect(() => {
     if (barId && barInfo?.name) fetchCheckInCount()
   }, [barId, barInfo?.name, fetchCheckInCount])
-
-  const fetchLatestProfileReview = useCallback(async () => {
-    if (!barId) return
-    setReviewLoading(true)
-    setReviewError('')
-    try {
-      const row = await getLatestMerchantProfileRequest(barId)
-      setLatestProfileReview(row)
-    } catch (err) {
-      setReviewError(err?.message || '读取审核状态失败')
-    } finally {
-      setReviewLoading(false)
-    }
-  }, [barId])
-
-  useEffect(() => {
-    if (barId) fetchLatestProfileReview()
-  }, [barId, fetchLatestProfileReview])
-
-  const handleSubmitProfileReview = useCallback(async () => {
-    if (!barId || !barDisplay) return
-    setReviewSubmitting(true)
-    setReviewError('')
-    try {
-      const payload = buildPayloadFromBar(barDisplay)
-      const next = await submitMerchantProfileRequest({
-        barId,
-        requestType: 'update',
-        payload,
-        submittedByEmail: partnerAccount?.email || ''
-      })
-      setLatestProfileReview(next)
-    } catch (err) {
-      setReviewError(err?.message || '提交失败')
-    } finally {
-      setReviewSubmitting(false)
-    }
-  }, [barId, barDisplay])
 
   // 审核通过活动的总名额与实际到店人数
   const pieStats = (() => {
@@ -359,57 +312,6 @@ export default function PartnerDashboard() {
           </div>
         </section>
 
-        <section className="bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-5 flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-cc-neutral-700 uppercase tracking-wider">门店信息审核（试运行）</h3>
-              <p className="text-xs text-cc-neutral-500 mt-1">
-                本步骤用于验证“商户提交资料 → 管理端审核”的数据链路，当前先提交当前门店信息快照。
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={!barDisplay || reviewSubmitting}
-              onClick={handleSubmitProfileReview}
-              className="bg-cc-primary hover:bg-cc-primary-hover disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-full"
-            >
-              {reviewSubmitting ? '提交中…' : '提交门店信息审核'}
-            </button>
-          </div>
-
-          {reviewLoading ? (
-            <p className="text-xs text-cc-neutral-500 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> 读取审核状态中…</p>
-          ) : latestProfileReview ? (
-            <div className="text-xs rounded-xl bg-cc-neutral-100/80 px-3 py-2 text-cc-neutral-600">
-              最新审核状态：
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                latestProfileReview.status === 'approved'
-                  ? 'bg-emerald-50 text-emerald-600'
-                  : latestProfileReview.status === 'rejected'
-                    ? 'bg-red-50 text-red-500'
-                    : 'bg-amber-50 text-amber-600'
-              }`}>
-                {latestProfileReview.status === 'approved'
-                  ? '已通过'
-                  : latestProfileReview.status === 'rejected'
-                    ? '已驳回'
-                    : '待审核'}
-              </span>
-              <span className="ml-2 text-cc-neutral-500">
-                提交时间：{latestProfileReview.created_at ? new Date(latestProfileReview.created_at).toLocaleString() : '--'}
-              </span>
-              {latestProfileReview.review_comment ? (
-                <p className="mt-2 text-red-500">驳回原因：{latestProfileReview.review_comment}</p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-xs text-cc-neutral-500">暂无审核记录</p>
-          )}
-
-          {reviewError ? (
-            <p className="text-xs text-red-500">{reviewError}</p>
-          ) : null}
-        </section>
       </main>
     </div>
   )
