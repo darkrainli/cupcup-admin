@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings, ArrowLeft } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../lib/memfire'
@@ -141,7 +141,6 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 
 /** 管理员后台：门店录入/编辑、酒吧列表（与 Partner 商户端分离） */
 function AdminDashboard() {
-  const navigate = useNavigate()
   const [isAuthenticated, setIsAuthenticated] = useState(isAdminAuthenticated())
   const [loginForm, setLoginForm] = useState({ id: '', password: '' })
   const [loginError, setLoginError] = useState('')
@@ -208,8 +207,11 @@ function AdminDashboard() {
         }
       })
       setAdminSession(account)
+      if (typeof window !== 'undefined') {
+        window.location.replace('/admin/dashboard')
+        return
+      }
       setIsAuthenticated(true)
-      navigate('/admin/dashboard', { replace: true })
     } catch (error) {
       setLoginError(error?.message || '登录失败，请稍后重试')
     } finally {
