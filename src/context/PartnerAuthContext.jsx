@@ -159,15 +159,33 @@ export function PartnerAuthProvider({ children }) {
         .then(({ data }) => {
           if (!cancelled && data) {
             persistBar(data.id, normalizeBarInfo(data))
+            persistBarRemovedByAdmin(false)
+          } else if (!cancelled) {
+            // 本地仍有 barId，但门店已不存在
+            if (partnerAccount?.id) {
+              refreshPartnerSession().catch(() => {})
+            } else {
+              persistBar(null, null)
+              persistBarRemovedByAdmin(true)
+            }
           }
         })
-        .catch(() => {})
+        .catch(() => {
+          if (!cancelled) {
+            if (partnerAccount?.id) {
+              refreshPartnerSession().catch(() => {})
+            } else {
+              persistBar(null, null)
+              persistBarRemovedByAdmin(true)
+            }
+          }
+        })
     } else if (partnerAccount?.id) {
       refreshPartnerSession().catch(() => {})
     }
     setLoading(false)
     return () => { cancelled = true }
-  }, [barId, partnerAccount?.id, persistBar, normalizeBarInfo, refreshPartnerSession])
+  }, [barId, partnerAccount?.id, persistBar, normalizeBarInfo, refreshPartnerSession, persistBarRemovedByAdmin])
 
   // 未绑定门店时自动轮询绑定结果，审核通过后无需重新登录即可回显资料
   useEffect(() => {
@@ -189,8 +207,22 @@ export function PartnerAuthProvider({ children }) {
       const info = normalizeBarInfo(data)
       setBarInfo(info)
       localStorage.setItem(STORAGE_BAR_INFO, JSON.stringify(info))
+      persistBarRemovedByAdmin(false)
+      return
     }
-  }, [barId, normalizeBarInfo])
+
+    // barId 已失效（管理员删除门店）: 清理绑定并提示
+    persistBar(null, null)
+    persistBarRemovedByAdmin(true)
+    if (partnerAccount?.id) {
+      await memFire.from('partner_accounts').update({ bar_id: null }).eq('id', partnerAccount.id)
+      persistPartnerAccount({
+        id: partnerAccount.id,
+        email: partnerAccount.email,
+        bar_id: null
+      })
+    }
+  }, [barId, normalizeBarInfo, partnerAccount?.id, partnerAccount?.email, persistBar, persistBarRemovedByAdmin, persistPartnerAccount])
 
   const value = {
     user,
