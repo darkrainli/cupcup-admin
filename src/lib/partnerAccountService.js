@@ -1,4 +1,5 @@
 import { memFire } from './memfire'
+import { hashPassword } from './passwordHash'
 
 const TABLE = 'partner_accounts'
 
@@ -6,6 +7,9 @@ function prettyError(error) {
   const msg = error?.message || ''
   if (msg.includes('relation') && msg.includes('does not exist')) {
     return '缺少 partner_accounts 数据表，请先执行 SQL 建表'
+  }
+  if (msg.includes('password_hash')) {
+    return '缺少 password_hash 字段，请先执行 sql/migrate_partner_accounts_password_hash.sql'
   }
   return msg || '请求失败'
 }
@@ -18,7 +22,7 @@ export function generatePartnerPassword(length = 10) {
 export async function listPartnerAccounts() {
   const { data, error } = await memFire
     .from(TABLE)
-    .select('id, email, password, bar_id, created_at, updated_at')
+    .select('id, email, bar_id, created_at, updated_at')
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(prettyError(error))
@@ -29,7 +33,7 @@ export async function getPartnerAccountByBarId(barId) {
   if (!barId) return null
   const { data, error } = await memFire
     .from(TABLE)
-    .select('id, email, password, bar_id, created_at, updated_at')
+    .select('id, email, bar_id, created_at, updated_at')
     .eq('bar_id', barId)
     .limit(1)
 
@@ -41,6 +45,7 @@ export async function createPartnerAccount({ email, password }) {
   const emailTrim = (email || '').trim().toLowerCase()
   if (!emailTrim) throw new Error('请输入邮箱')
   if (!password || password.length < 6) throw new Error('密码至少 6 位')
+  const passwordHash = await hashPassword(password)
 
   const { data: exists, error: existsError } = await memFire
     .from(TABLE)
@@ -55,10 +60,10 @@ export async function createPartnerAccount({ email, password }) {
     .from(TABLE)
     .insert([{
       email: emailTrim,
-      password,
+      password_hash: passwordHash,
       bar_id: null
     }])
-    .select('id, email, password, bar_id, created_at, updated_at')
+    .select('id, email, bar_id, created_at, updated_at')
     .single()
 
   if (error) throw new Error(prettyError(error))
@@ -70,6 +75,7 @@ export async function upsertPartnerAccountForBar({ barId, email, password }) {
   if (!barId) throw new Error('缺少门店 ID')
   if (!emailTrim) throw new Error('请输入邮箱')
   if (!password || password.length < 6) throw new Error('密码至少 6 位')
+  const passwordHash = await hashPassword(password)
 
   const { data: existingByEmail, error: checkErr } = await memFire
     .from(TABLE)
@@ -92,9 +98,9 @@ export async function upsertPartnerAccountForBar({ barId, email, password }) {
   if (existingByBar?.length) {
     const { data, error } = await memFire
       .from(TABLE)
-      .update({ email: emailTrim, password })
+      .update({ email: emailTrim, password_hash: passwordHash })
       .eq('id', existingByBar[0].id)
-      .select('id, email, password, bar_id, created_at, updated_at')
+      .select('id, email, bar_id, created_at, updated_at')
       .single()
     if (error) throw new Error(prettyError(error))
     return data
@@ -104,10 +110,10 @@ export async function upsertPartnerAccountForBar({ barId, email, password }) {
     .from(TABLE)
     .insert([{
       email: emailTrim,
-      password,
+      password_hash: passwordHash,
       bar_id: barId
     }])
-    .select('id, email, password, bar_id, created_at, updated_at')
+    .select('id, email, bar_id, created_at, updated_at')
     .single()
 
   if (error) throw new Error(prettyError(error))
@@ -117,10 +123,11 @@ export async function upsertPartnerAccountForBar({ barId, email, password }) {
 export async function resetPartnerPassword({ id, password }) {
   if (!id) throw new Error('缺少账号 ID')
   if (!password || password.length < 6) throw new Error('密码至少 6 位')
+  const passwordHash = await hashPassword(password)
 
   const { error } = await memFire
     .from(TABLE)
-    .update({ password })
+    .update({ password_hash: passwordHash })
     .eq('id', id)
 
   if (error) throw new Error(prettyError(error))

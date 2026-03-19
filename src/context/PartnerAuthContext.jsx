@@ -4,6 +4,7 @@
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { memFire } from '../lib/memfire'
+import { hashPassword } from '../lib/passwordHash'
 
 export { memFire }
 
@@ -72,17 +73,23 @@ export function PartnerAuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const emailTrim = (email || '').trim().toLowerCase()
     if (!emailTrim || !password) throw new Error('请输入邮箱和密码')
+    const hashed = await hashPassword(password)
 
     const { data: accounts, error: accountError } = await memFire
       .from('partner_accounts')
-      .select('id, email, bar_id')
+      .select('id, email, bar_id, password_hash')
       .eq('email', emailTrim)
-      .eq('password', password)
       .limit(1)
     if (accountError) throw accountError
 
     if (accounts?.length) {
       const account = accounts[0]
+      if (!account.password_hash) {
+        throw new Error('账号密码未升级，请联系管理员执行密码迁移脚本')
+      }
+      if (account.password_hash !== hashed) {
+        throw new Error('邮箱或密码错误，请核对后重试')
+      }
       persistPartnerAccount({ id: account.id, email: account.email, bar_id: account.bar_id || null })
 
       if (account.bar_id) {

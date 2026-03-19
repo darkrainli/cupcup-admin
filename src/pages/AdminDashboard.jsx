@@ -481,7 +481,7 @@ function AdminDashboard() {
       setCurrentPartnerAccount(account)
       if (account) {
         setPartnerEmail(account.email || '')
-        setPartnerPassword(account.password || '')
+        setPartnerPassword(generatePartnerPassword(10))
       } else {
         setPartnerEmail('')
         setPartnerPassword(generatePartnerPassword(10))

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Copy, Loader2, RefreshCw, UserPlus } from 'lucide-react'
+import { ArrowLeft, Loader2, RefreshCw, UserPlus } from 'lucide-react'
 import {
   createPartnerAccount,
   generatePartnerPassword,
@@ -59,14 +59,6 @@ export default function AdminPartnerAccounts() {
       alert(`密码已重置\n邮箱: ${row.email}\n新密码: ${nextPwd}`)
     } catch (err) {
       alert(err?.message || '重置失败')
-    }
-  }
-
-  const copyText = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      alert('复制失败，请手动复制')
     }
   }
 
@@ -148,13 +140,6 @@ export default function AdminPartnerAccounts() {
                       {row.bar_id ? `已绑定门店: ${row.bar_id}` : '未绑定门店'} · 创建于 {row.created_at ? new Date(row.created_at).toLocaleString() : '--'}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => copyText(`邮箱: ${row.email}\n密码: ${row.password}`)}
-                    className="px-3 py-1.5 rounded-cc bg-white text-cc-neutral-700 text-xs font-bold border border-cc-border flex items-center gap-1"
-                  >
-                    <Copy size={12} /> 复制
-                  </button>
                   <button
                     type="button"
                     onClick={() => handleResetPassword(row)}
