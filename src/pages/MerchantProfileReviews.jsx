@@ -159,7 +159,7 @@ export default function MerchantProfileReviews() {
           </Link>
           <div className="h-5 w-px bg-cc-border" />
           <div className="flex items-center gap-2">
-            <div className="bg-cc-warning/10 text-cc-warning p-2 rounded-cc"><FileText size={20} strokeWidth={1.5} /></div>
+            <div className="bg-cc-warning-bg text-cc-warning p-2 rounded-cc"><FileText size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">商户审核</h1>
           </div>
         </div>
