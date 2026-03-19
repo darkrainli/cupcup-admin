@@ -214,10 +214,15 @@ export default function MerchantProfileReviews() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => openDetail(row)}
-                    className="bg-cc-primary text-white px-4 py-2 rounded-cc font-bold text-sm hover:bg-cc-primary-hover"
+                    onClick={() => row.status === 'pending' && openDetail(row)}
+                    disabled={row.status !== 'pending'}
+                    className={`px-4 py-2 rounded-cc font-bold text-sm transition-colors ${
+                      row.status === 'pending'
+                        ? 'bg-cc-primary text-white hover:bg-cc-primary-hover'
+                        : 'bg-cc-neutral-200 text-cc-neutral-400 cursor-not-allowed'
+                    }`}
                   >
-                    查看 / 审核
+                    {row.status === 'pending' ? '查看 / 审核' : '审核已完成'}
                   </button>
                 </div>
               </li>
