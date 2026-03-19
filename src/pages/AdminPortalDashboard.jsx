@@ -7,7 +7,7 @@ const MODULES = [
     key: 'bars',
     title: '录入店铺',
     desc: '新建/编辑店铺信息，维护地址、电话、经纬度与店铺图片。',
-    to: '/admin/bars',
+    to: '/admin/bars?from=dashboard',
     icon: MapPin,
     badgeClass: 'bg-cc-primary-subtle text-cc-primary'
   },

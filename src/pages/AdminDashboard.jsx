@@ -142,6 +142,9 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 /** 管理员后台：门店录入/编辑、酒吧列表（与 Partner 商户端分离） */
 function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(isAdminAuthenticated())
+  const canStayOnBarsPage = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('from') === 'dashboard'
+    : false
   const [loginForm, setLoginForm] = useState({ id: '', password: '' })
   const [loginError, setLoginError] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
@@ -222,6 +225,13 @@ function AdminDashboard() {
   const handleLogout = () => {
     setIsAuthenticated(false)
     clearAdminSession()
+  }
+
+  if (isAuthenticated && !canStayOnBarsPage) {
+    if (typeof window !== 'undefined') {
+      window.location.replace('/admin/dashboard')
+    }
+    return null
   }
 
   const fetchBars = async () => {
