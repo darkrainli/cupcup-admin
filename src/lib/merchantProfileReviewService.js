@@ -95,13 +95,31 @@ export async function submitMerchantProfileRequest({
   if (!barId && !partnerAccountId) throw new Error('缺少门店或账号标识，无法提交审核')
   if (!payload || typeof payload !== 'object') throw new Error('提交内容为空')
 
+  let effectiveBarId = barId || null
+  let effectiveRequestType = requestType
+
+  // 防御：如果 bar_id 已失效（门店被删除），自动降级为创建申请，避免外键报错
+  if (effectiveBarId) {
+    const { data: linkedBar, error: linkedBarError } = await memFire
+      .from('bars')
+      .select('id')
+      .eq('id', effectiveBarId)
+      .maybeSingle()
+
+    if (linkedBarError) throw new Error(linkedBarError?.message || '校验门店失败')
+    if (!linkedBar?.id) {
+      effectiveBarId = null
+      effectiveRequestType = 'create'
+    }
+  }
+
   let pendingQuery = memFire
     .from(REVIEW_TABLE)
     .select('id, status')
     .eq('status', 'pending')
     .limit(1)
 
-  if (barId) pendingQuery = pendingQuery.eq('bar_id', barId)
+  if (effectiveBarId) pendingQuery = pendingQuery.eq('bar_id', effectiveBarId)
   else pendingQuery = pendingQuery.eq('partner_account_id', partnerAccountId)
 
   const { data: pendingRows, error: pendingError } = await pendingQuery
@@ -112,9 +130,9 @@ export async function submitMerchantProfileRequest({
   const { data, error } = await memFire
     .from(REVIEW_TABLE)
     .insert([{
-      bar_id: barId || null,
+      bar_id: effectiveBarId,
       partner_account_id: partnerAccountId || null,
-      request_type: requestType,
+      request_type: effectiveRequestType,
       status: 'pending',
       payload,
       submitted_by_email: submittedByEmail || null
