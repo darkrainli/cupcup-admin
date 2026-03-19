@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Wine, Loader2, Save, CheckCircle2, Settings, CalendarCheck, Plus, Trash2 } from 'lucide-react'
+import { Wine, Loader2, Save, CheckCircle2, Settings, CalendarCheck, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { memFire } from '../lib/memfire'
 
 const PLATFORMS = [
@@ -203,11 +203,14 @@ export default function AppConfig() {
     <div className="min-h-screen bg-cc-neutral-50 pb-20">
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-2.5">
+          <Link to="/admin/dashboard" className="text-cc-neutral-500 hover:text-cc-primary flex items-center gap-2 font-medium">
+            <ArrowLeft size={18} strokeWidth={1.5} /> CupCup管理首页
+          </Link>
+          <div className="h-5 w-px bg-cc-border" />
           <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
-          <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
+          <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">App 配置</h1>
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-xs font-bold text-cc-neutral-500 hover:text-cc-neutral-700">返回门店管理</Link>
           <Link to="/admin/audit-activities" className="text-xs font-bold text-cc-warning hover:opacity-90 bg-cc-warning-bg px-3 py-1.5 rounded-full flex items-center gap-1.5">
             活动审核
           </Link>

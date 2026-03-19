@@ -1,4 +1,4 @@
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { CheckCircle2, FileText, MapPin, Settings, Ticket, UserPlus } from 'lucide-react'
 
 const MODULES = [
@@ -45,6 +45,7 @@ const MODULES = [
 ]
 
 export default function AdminPortalDashboard() {
+  const navigate = useNavigate()
   const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem('isLoggedIn') === 'true'
   if (!isAuthenticated) return <Navigate to="/admin/bars" replace />
 
@@ -58,9 +59,21 @@ export default function AdminPortalDashboard() {
             <p className="text-xs font-medium text-cc-neutral-500">Dashboard</p>
           </div>
         </div>
-        <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
-          <CheckCircle2 size={12} /> 模块总览
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
+            <CheckCircle2 size={12} /> 模块总览
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('isLoggedIn')
+              navigate('/admin/bars', { replace: true })
+            }}
+            className="text-xs font-bold text-cc-neutral-500 hover:text-cc-error transition-colors flex items-center gap-1 bg-cc-neutral-100 px-3 py-1 rounded-full"
+          >
+            退出登录
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 py-8">

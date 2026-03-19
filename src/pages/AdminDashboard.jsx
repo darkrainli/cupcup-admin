@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings } from 'lucide-react'
+import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings, ArrowLeft } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../lib/memfire'
 import {
@@ -667,16 +667,14 @@ function AdminDashboard() {
       {/* 顶部导航 */}
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-50 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-2.5">
+          <Link to="/admin/dashboard" className="text-cc-neutral-500 hover:text-cc-primary flex items-center gap-2 font-medium">
+            <ArrowLeft size={18} strokeWidth={1.5} /> CupCup管理首页
+          </Link>
+          <div className="h-5 w-px bg-cc-border" />
           <img src="/logo.svg" alt="CupCup" className="w-8 h-8 rounded-cc shrink-0" />
-          <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">CupCup 管理系统</h1>
+          <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">录入店铺</h1>
         </div>
         <div className="flex items-center gap-4">
-          <Link
-            to="/admin/dashboard"
-            className="text-xs font-bold text-cc-neutral-600 hover:opacity-90 bg-cc-neutral-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            总览
-          </Link>
           <Link
             to="/admin/app-config"
             className="text-xs font-bold text-cc-primary hover:opacity-90 bg-cc-primary-subtle px-3 py-1.5 rounded-full flex items-center gap-1.5"
@@ -704,12 +702,6 @@ function AdminDashboard() {
           <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
             <CheckCircle2 size={12}/> 已连接 MemFire
           </span>
-          <button 
-            onClick={handleLogout}
-            className="text-xs font-bold text-cc-neutral-500 hover:text-cc-error transition-colors flex items-center gap-1 bg-cc-neutral-100 px-3 py-1 rounded-full"
-          >
-            退出登录
-          </button>
         </div>
       </nav>
 
