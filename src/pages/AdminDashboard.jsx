@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { Plus, Trash2, MapPin, Wine, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Edit2, X, Scissors, FileText, UserPlus, GripVertical, Settings, ArrowLeft } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
 import { memFire } from '../lib/memfire'
+import { loginAdmin } from '../lib/adminAuthService'
+import { clearAdminSession, isAdminAuthenticated, setAdminSession } from '../lib/adminSession'
 import {
   generatePartnerPassword,
   getPartnerAccountByBarId,
@@ -17,7 +19,6 @@ function moveItem(arr, fromIndex, toIndex) {
 }
 
 // CupCup 酒吧管理后台：对接 MemFire（与 PartnerAuthContext 共用同一客户端，避免多实例）
-// 登录账号：cupadmin  密码：cup9898
 // 接口：bars 表、collected_cards 表、Storage 桶 cup-images（bar-details）
 
 // 店面分类：四大类及其子项（下拉先选大类，再选子项）
@@ -140,8 +141,10 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 
 /** 管理员后台：门店录入/编辑、酒吧列表（与 Partner 商户端分离） */
 function AdminDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('isLoggedIn') === 'true')
+  const [isAuthenticated, setIsAuthenticated] = useState(isAdminAuthenticated())
   const [loginForm, setLoginForm] = useState({ id: '', password: '' })
+  const [loginError, setLoginError] = useState('')
+  const [loggingIn, setLoggingIn] = useState(false)
   
   const [bars, setBars] = useState([])
   const [loading, setLoading] = useState(true)
@@ -191,19 +194,24 @@ function AdminDashboard() {
     }
   }, [isAuthenticated])
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (loginForm.id === 'cupadmin' && loginForm.password === 'cup9898') {
+    setLoginError('')
+    setLoggingIn(true)
+    try {
+      const account = await loginAdmin({ loginId: loginForm.id, password: loginForm.password })
+      setAdminSession(account)
       setIsAuthenticated(true)
-      localStorage.setItem('isLoggedIn', 'true')
-    } else {
-      alert('账号或密码错误')
+    } catch (error) {
+      setLoginError(error?.message || '登录失败，请稍后重试')
+    } finally {
+      setLoggingIn(false)
     }
   }
 
   const handleLogout = () => {
     setIsAuthenticated(false)
-    localStorage.removeItem('isLoggedIn')
+    clearAdminSession()
   }
 
   const fetchBars = async () => {
@@ -558,9 +566,10 @@ function AdminDashboard() {
                 onChange={e => setLoginForm({...loginForm, password: e.target.value})}
               />
             </div>
-            <button className="w-full bg-cc-primary hover:bg-cc-primary-hover text-white font-medium py-3.5 rounded-cc transition-all">
-              安全登录
+            <button disabled={loggingIn} className="w-full bg-cc-primary hover:bg-cc-primary-hover text-white font-medium py-3.5 rounded-cc transition-all disabled:opacity-60">
+              {loggingIn ? '登录中…' : '安全登录'}
             </button>
+            {loginError ? <p className="text-sm text-cc-error">{loginError}</p> : null}
           </form>
           
           <p className="text-center text-cc-neutral-400 text-xs font-serif mt-10">© 2026 CupCup Technology Inc.</p>

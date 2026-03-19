@@ -1,5 +1,6 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { CheckCircle2, FileText, MapPin, Settings, Ticket, UserPlus } from 'lucide-react'
+import { clearAdminSession, isAdminAuthenticated } from '../lib/adminSession'
 
 const MODULES = [
   {
@@ -46,7 +47,7 @@ const MODULES = [
 
 export default function AdminPortalDashboard() {
   const navigate = useNavigate()
-  const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem('isLoggedIn') === 'true'
+  const isAuthenticated = isAdminAuthenticated()
   if (!isAuthenticated) return <Navigate to="/admin/bars" replace />
 
   return (
@@ -66,7 +67,7 @@ export default function AdminPortalDashboard() {
           <button
             type="button"
             onClick={() => {
-              localStorage.removeItem('isLoggedIn')
+              clearAdminSession()
               navigate('/admin/bars', { replace: true })
             }}
             className="text-xs font-bold text-cc-neutral-500 hover:text-cc-error transition-colors flex items-center gap-1 bg-cc-neutral-100 px-3 py-1 rounded-full"

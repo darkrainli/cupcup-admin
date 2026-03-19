@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Wine, Loader2, Save, CheckCircle2, Settings, CalendarCheck, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { memFire } from '../lib/memfire'
+import { isAdminAuthenticated } from '../lib/adminSession'
 
 const PLATFORMS = [
   { value: 'zhipu', label: '智谱' },
@@ -48,7 +49,7 @@ const CONFIG_KEYS = [
 ]
 
 export default function AppConfig() {
-  const [isAuthenticated] = useState(localStorage.getItem('isLoggedIn') === 'true')
+  const [isAuthenticated] = useState(isAdminAuthenticated())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')

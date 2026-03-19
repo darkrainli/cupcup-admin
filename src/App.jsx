@@ -6,6 +6,7 @@
  */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { PartnerAuthProvider } from './context/PartnerAuthContext'
+import { isAdminAuthenticated } from './lib/adminSession'
 import PartnerLogin from './pages/PartnerLogin'
 import PartnerDashboard from './pages/PartnerDashboard'
 import PartnerCreateActivity from './pages/PartnerCreateActivity'
@@ -18,6 +19,11 @@ import MerchantProfileReviews from './pages/MerchantProfileReviews'
 import AdminPartnerAccounts from './pages/AdminPartnerAccounts'
 
 const PARTNER_DOMAIN = 'partner.cupcup.club'
+
+function AdminGuard({ children }) {
+  if (!isAdminAuthenticated()) return <Navigate to="/admin/bars" replace />
+  return children
+}
 
 function RootRedirect() {
   const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === PARTNER_DOMAIN
@@ -34,12 +40,12 @@ function App() {
           <Route path="/partner/dashboard" element={<PartnerDashboard />} />
           <Route path="/partner/create-activity" element={<PartnerCreateActivity />} />
           <Route path="/partner/merchant-profile" element={<PartnerMerchantProfile />} />
-          <Route path="/admin/dashboard" element={<AdminPortalDashboard />} />
+          <Route path="/admin/dashboard" element={<AdminGuard><AdminPortalDashboard /></AdminGuard>} />
           <Route path="/admin/bars" element={<AdminDashboard />} />
-          <Route path="/admin/audit-activities" element={<AuditActivities />} />
-          <Route path="/admin/merchant-reviews" element={<MerchantProfileReviews />} />
-          <Route path="/admin/partner-accounts" element={<AdminPartnerAccounts />} />
-          <Route path="/admin/app-config" element={<AppConfig />} />
+          <Route path="/admin/audit-activities" element={<AdminGuard><AuditActivities /></AdminGuard>} />
+          <Route path="/admin/merchant-reviews" element={<AdminGuard><MerchantProfileReviews /></AdminGuard>} />
+          <Route path="/admin/partner-accounts" element={<AdminGuard><AdminPartnerAccounts /></AdminGuard>} />
+          <Route path="/admin/app-config" element={<AdminGuard><AppConfig /></AdminGuard>} />
           <Route path="/" element={<RootRedirect />} />
           <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
