@@ -11,6 +11,7 @@ import PartnerDashboard from './pages/PartnerDashboard'
 import PartnerCreateActivity from './pages/PartnerCreateActivity'
 import PartnerMerchantProfile from './pages/PartnerMerchantProfile'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminPortalDashboard from './pages/AdminPortalDashboard'
 import AuditActivities from './pages/AuditActivities'
 import AppConfig from './pages/AppConfig'
 import MerchantProfileReviews from './pages/MerchantProfileReviews'
@@ -21,7 +22,7 @@ const PARTNER_DOMAIN = 'partner.cupcup.club'
 function RootRedirect() {
   const isPartnerDomain = typeof window !== 'undefined' && window.location.hostname === PARTNER_DOMAIN
   if (isPartnerDomain) return <Navigate to="/partner/login" replace />
-  return <AdminDashboard />
+  return <Navigate to="/admin/dashboard" replace />
 }
 
 function App() {
@@ -33,12 +34,14 @@ function App() {
           <Route path="/partner/dashboard" element={<PartnerDashboard />} />
           <Route path="/partner/create-activity" element={<PartnerCreateActivity />} />
           <Route path="/partner/merchant-profile" element={<PartnerMerchantProfile />} />
+          <Route path="/admin/dashboard" element={<AdminPortalDashboard />} />
+          <Route path="/admin/bars" element={<AdminDashboard />} />
           <Route path="/admin/audit-activities" element={<AuditActivities />} />
           <Route path="/admin/merchant-reviews" element={<MerchantProfileReviews />} />
           <Route path="/admin/partner-accounts" element={<AdminPartnerAccounts />} />
           <Route path="/admin/app-config" element={<AppConfig />} />
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/*" element={<AdminDashboard />} />
+          <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
     </PartnerAuthProvider>

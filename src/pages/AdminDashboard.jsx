@@ -672,6 +672,12 @@ function AdminDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <Link
+            to="/admin/dashboard"
+            className="text-xs font-bold text-cc-neutral-600 hover:opacity-90 bg-cc-neutral-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
+          >
+            总览
+          </Link>
+          <Link
             to="/admin/app-config"
             className="text-xs font-bold text-cc-primary hover:opacity-90 bg-cc-primary-subtle px-3 py-1.5 rounded-full flex items-center gap-1.5"
           >
