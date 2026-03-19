@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, FileText, Loader2, X, XCircle } from 'lucide-r
 import {
   approveMerchantProfileRequest,
   getBarById,
+  listMerchantProfileRequestLogs,
   listMerchantProfileRequests,
   rejectMerchantProfileRequest
 } from '../lib/merchantProfileReviewService'
@@ -24,19 +25,21 @@ function statusText(status) {
 export default function MerchantProfileReviews() {
   const [statusFilter, setStatusFilter] = useState('pending')
   const [list, setList] = useState([])
+  const [latestUpdatedRequestId, setLatestUpdatedRequestId] = useState('')
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState(null)
   const [barInfo, setBarInfo] = useState(null)
   const [editForm, setEditForm] = useState(null)
+  const [requestLogs, setRequestLogs] = useState([])
   const [saving, setSaving] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  const fetchList = useCallback(async () => {
+  const fetchList = useCallback(async (targetStatus = statusFilter) => {
     setLoading(true)
     setErrorMsg('')
     try {
-      const rows = await listMerchantProfileRequests(statusFilter)
+      const rows = await listMerchantProfileRequests(targetStatus)
       setList(rows)
     } catch (err) {
       setErrorMsg(err?.message || '加载失败')
@@ -53,11 +56,14 @@ export default function MerchantProfileReviews() {
   const openDetail = useCallback(async (row) => {
     setDetail(row)
     setBarInfo(null)
+    setRequestLogs([])
     setRejectReason(row?.review_comment || '')
     setErrorMsg('')
     try {
       const bar = row?.bar_id ? await getBarById(row.bar_id) : null
+      const logs = await listMerchantProfileRequestLogs(row?.id)
       setBarInfo(bar)
+      setRequestLogs(logs)
       const payloadImages = Array.isArray(row?.payload?.detail_images) ? row.payload.detail_images : []
       const barImages = Array.isArray(bar?.detail_images) ? bar.detail_images : []
       const mergedImages = (payloadImages.length ? payloadImages : barImages).filter(Boolean).slice(0, 5)
@@ -101,10 +107,14 @@ export default function MerchantProfileReviews() {
         request: detail,
         appliedBarData: editForm
       })
+      const updatedId = detail.id
       setDetail(null)
       setBarInfo(null)
       setEditForm(null)
-      await fetchList()
+      setRequestLogs([])
+      setLatestUpdatedRequestId(updatedId)
+      setStatusFilter('')
+      await fetchList('')
       alert('审核通过，门店信息已更新')
     } catch (err) {
       setErrorMsg(err?.message || '审核通过失败')
@@ -123,11 +133,15 @@ export default function MerchantProfileReviews() {
         request: detail,
         reason: rejectReason
       })
+      const updatedId = detail.id
       setDetail(null)
       setBarInfo(null)
       setEditForm(null)
+      setRequestLogs([])
       setRejectReason('')
-      await fetchList()
+      setLatestUpdatedRequestId(updatedId)
+      setStatusFilter('')
+      await fetchList('')
       alert('已驳回，商户可根据原因重新提交')
     } catch (err) {
       setErrorMsg(err?.message || '驳回失败')
@@ -175,7 +189,14 @@ export default function MerchantProfileReviews() {
         ) : (
           <ul className="space-y-4">
             {list.map((row) => (
-              <li key={row.id} className="bg-cc-surface rounded-cc-xl border border-cc-border p-5 shadow-sm">
+              <li
+                key={row.id}
+                className={`bg-cc-surface rounded-cc-xl border p-5 shadow-sm transition-all ${
+                  row.id === latestUpdatedRequestId
+                    ? 'border-cc-primary ring-2 ring-cc-primary-subtle'
+                    : 'border-cc-border'
+                }`}
+              >
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-bold text-cc-neutral-800 truncate">{row?.payload?.name || '未命名门店'}</p>
@@ -283,6 +304,35 @@ export default function MerchantProfileReviews() {
                 className="w-full bg-cc-neutral-100 rounded-xl px-3 py-2 text-sm resize-none"
                 placeholder="请填写驳回原因，商户会看到这段内容"
               />
+            </div>
+
+            <div className="mt-5">
+              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">审核日志</label>
+              {requestLogs.length > 0 ? (
+                <div className="rounded-xl border border-cc-border bg-cc-neutral-50/60 max-h-48 overflow-y-auto divide-y divide-cc-border">
+                  {requestLogs.map((log) => (
+                    <div key={log.id} className="px-3 py-2 text-xs">
+                      <p className="font-semibold text-cc-neutral-700">
+                        {log.action === 'submit' ? '商户提交' : log.action === 'approve' ? '管理员通过' : '管理员驳回'}
+                        <span className="ml-2 text-cc-neutral-400 font-medium">
+                          {log.created_at ? new Date(log.created_at).toLocaleString() : '--'}
+                        </span>
+                      </p>
+                      <p className="text-cc-neutral-500 mt-1">
+                        操作人：{log.operator_email || log.operator_id || log.operator_role || 'system'}
+                        {log.before_status || log.after_status
+                          ? ` · 状态：${log.before_status || '-'} → ${log.after_status || '-'}`
+                          : ''}
+                      </p>
+                      {log.comment ? <p className="text-cc-neutral-600 mt-1">备注：{log.comment}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-cc border border-dashed border-cc-border bg-cc-neutral-100/60 py-4 text-center text-xs text-cc-neutral-500">
+                  暂无日志
+                </div>
+              )}
             </div>
 
             {errorMsg ? <p className="text-sm text-cc-error mt-3">{errorMsg}</p> : null}

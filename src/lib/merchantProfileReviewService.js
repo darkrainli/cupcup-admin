@@ -151,6 +151,17 @@ export async function listMerchantProfileRequests(status = '') {
   return data || []
 }
 
+export async function listMerchantProfileRequestLogs(requestId) {
+  if (!requestId) return []
+  const { data, error } = await memFire
+    .from(REVIEW_LOG_TABLE)
+    .select('id, request_id, action, operator_role, operator_id, operator_email, before_status, after_status, comment, request_type, created_at')
+    .eq('request_id', requestId)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(prettyMemfireError(error))
+  return data || []
+}
+
 export async function getBarById(barId) {
   if (!barId) return null
   const { data, error } = await memFire
