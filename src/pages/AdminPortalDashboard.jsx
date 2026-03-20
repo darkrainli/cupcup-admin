@@ -52,6 +52,14 @@ const MODULES = [
     badgeClass: 'bg-sky-100 text-sky-700'
   },
   {
+    key: 'partner-login-audit',
+    title: '商户登录审计',
+    desc: '查看商户登录成功/失败、锁定触发与 IP/终端信息。',
+    to: '/admin/partner-login-audit',
+    icon: Shield,
+    badgeClass: 'bg-teal-100 text-teal-700'
+  },
+  {
     key: 'app-config',
     title: 'App 配置',
     desc: '配置识别模型、每日打卡限制及其它全局运行参数。',

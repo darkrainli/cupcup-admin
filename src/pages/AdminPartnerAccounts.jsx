@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, RefreshCw, UserPlus } from 'lucide-react'
+import { ArrowLeft, Loader2, RefreshCw, Shield, UserPlus } from 'lucide-react'
 import {
   createPartnerAccount,
   generatePartnerPassword,
@@ -88,6 +88,12 @@ export default function AdminPartnerAccounts() {
             <h1 className="text-lg font-semibold text-cc-neutral-800">商户账号开通</h1>
           </div>
         </div>
+        <Link
+          to="/admin/partner-login-audit"
+          className="text-xs font-bold text-teal-700 hover:opacity-90 bg-teal-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
+        >
+          <Shield size={12} /> 商户登录审计
+        </Link>
       </nav>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">

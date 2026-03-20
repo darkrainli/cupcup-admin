@@ -19,6 +19,7 @@ import MerchantProfileReviews from './pages/MerchantProfileReviews'
 import AdminPartnerAccounts from './pages/AdminPartnerAccounts'
 import AdminLoginAuditLogs from './pages/AdminLoginAuditLogs'
 import AdminAccounts from './pages/AdminAccounts'
+import PartnerLoginAuditLogs from './pages/PartnerLoginAuditLogs'
 
 const PARTNER_DOMAIN = 'partner.cupcup.club'
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="/admin/partner-accounts" element={<AdminGuard><AdminPartnerAccounts /></AdminGuard>} />
           <Route path="/admin/admin-accounts" element={<AdminGuard><AdminAccounts /></AdminGuard>} />
           <Route path="/admin/login-audit" element={<AdminGuard><AdminLoginAuditLogs /></AdminGuard>} />
+          <Route path="/admin/partner-login-audit" element={<AdminGuard><PartnerLoginAuditLogs /></AdminGuard>} />
           <Route path="/admin/app-config" element={<AdminGuard><AppConfig /></AdminGuard>} />
           <Route path="/" element={<RootRedirect />} />
           <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
