@@ -3,6 +3,8 @@ import { memFire } from './memfire'
 const ANNOUNCEMENTS_TABLE = 'app_announcements'
 const USER_MESSAGES_TABLE = 'user_messages'
 const PROFILES_TABLE = 'profiles'
+const COLLECTED_CARDS_TABLE = 'collected_cards'
+const USER_SSR_CARDS_TABLE = 'user_ssr_cards'
 const COVER_BUCKET = 'cup-images'
 
 export async function fetchAnnouncements() {
@@ -58,27 +60,39 @@ export async function upsertAnnouncement(payload) {
   return data
 }
 
-async function fetchAllProfileIds() {
+async function fetchAllValuesFromTable(table, field) {
   const pageSize = 1000
   let from = 0
-  let all = []
+  const values = []
 
   while (true) {
     const to = from + pageSize - 1
     const { data, error } = await memFire
-      .from(PROFILES_TABLE)
-      .select('id')
+      .from(table)
+      .select(field)
       .range(from, to)
 
     if (error) throw error
     if (!data?.length) break
 
-    all = all.concat(data)
+    for (const row of data) {
+      const v = row?.[field]
+      if (v) values.push(v)
+    }
     if (data.length < pageSize) break
     from += pageSize
   }
 
-  return all.map((row) => row.id).filter(Boolean)
+  return values
+}
+
+async function fetchAllAudienceUserIds() {
+  const [profileIds, cardUserIds, ssrUserIds] = await Promise.all([
+    fetchAllValuesFromTable(PROFILES_TABLE, 'id'),
+    fetchAllValuesFromTable(COLLECTED_CARDS_TABLE, 'user_id'),
+    fetchAllValuesFromTable(USER_SSR_CARDS_TABLE, 'user_id')
+  ])
+  return [...new Set([...profileIds, ...cardUserIds, ...ssrUserIds])]
 }
 
 async function insertUserMessagesInBatches(rows) {
@@ -105,11 +119,11 @@ export async function publishAnnouncementAndPushMessages(announcementInput) {
     announcement = data
   }
 
-  const profileIds = await fetchAllProfileIds()
-  if (!profileIds.length) return { pushed: 0, announcement }
+  const audienceUserIds = await fetchAllAudienceUserIds()
+  if (!audienceUserIds.length) return { pushed: 0, announcement }
 
   const body = (announcement.summary || announcement.content || '').trim()
-  const messageRows = profileIds.map((uid) => ({
+  const messageRows = audienceUserIds.map((uid) => ({
     user_id: uid,
     type: 'system',
     event: 'system_announcement',
