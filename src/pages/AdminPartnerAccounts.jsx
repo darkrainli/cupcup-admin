@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, RefreshCw, Shield, UserPlus } from 'lucide-react'
+import { ArrowLeft, Copy, Eye, Loader2, RefreshCw, Shield, UserPlus, X } from 'lucide-react'
 import {
   createPartnerAccount,
   generatePartnerPassword,
@@ -16,6 +16,7 @@ export default function AdminPartnerAccounts() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState(generatePartnerPassword())
   const [errorMsg, setErrorMsg] = useState('')
+  const [credentialModal, setCredentialModal] = useState({ show: false, row: null, password: '' })
 
   const fetchList = useCallback(async () => {
     setLoading(true)
@@ -40,7 +41,18 @@ export default function AdminPartnerAccounts() {
     setSaving(true)
     setErrorMsg('')
     try {
-      await createPartnerAccount({ email, password })
+      const created = await createPartnerAccount({ email, password })
+      setCredentialModal({
+        show: true,
+        row: {
+          ...(created || {}),
+          email: created?.email || email.trim().toLowerCase(),
+          bar_name: '',
+          bar_cover_image_url: '',
+          bar_id: null
+        },
+        password
+      })
       setEmail('')
       setPassword(generatePartnerPassword())
       await fetchList()
@@ -57,7 +69,7 @@ export default function AdminPartnerAccounts() {
     try {
       await resetPartnerPassword({ id: row.id, password: nextPwd })
       await fetchList()
-      alert(`密码已重置\n邮箱: ${row.email}\n新密码: ${nextPwd}`)
+      setCredentialModal({ show: true, row, password: nextPwd })
     } catch (err) {
       alert(err?.message || '重置失败')
     }
@@ -75,8 +87,74 @@ export default function AdminPartnerAccounts() {
     }
   }
 
+  const openCredentialModal = (row) => {
+    setCredentialModal({ show: true, row, password: '' })
+  }
+
+  const copyCredentials = async () => {
+    if (!credentialModal?.row?.email) return
+    const text = credentialModal.password
+      ? `账号: ${credentialModal.row.email}\n密码: ${credentialModal.password}`
+      : `账号: ${credentialModal.row.email}\n密码: （请先点击“重置并显示新密码”）`
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('已复制到剪贴板')
+    } catch {
+      alert('复制失败，请手动复制')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-cc-neutral-50">
+      {credentialModal.show && credentialModal.row && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6" onClick={() => setCredentialModal({ show: false, row: null, password: '' })}>
+          <div className="bg-cc-surface rounded-cc-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-cc-neutral-800">商户登录账号</h3>
+              <button type="button" onClick={() => setCredentialModal({ show: false, row: null, password: '' })} className="text-cc-neutral-500 hover:text-cc-error">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 bg-cc-neutral-100 rounded-cc p-3">
+                {credentialModal.row.bar_cover_image_url ? (
+                  <img src={credentialModal.row.bar_cover_image_url} alt="" className="w-12 h-12 rounded-cc object-cover border border-cc-border" />
+                ) : (
+                  <div className="w-12 h-12 rounded-cc bg-cc-neutral-200 flex items-center justify-center text-xs text-cc-neutral-500">门店</div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-cc-neutral-800 truncate">{credentialModal.row.bar_name || '未绑定门店'}</p>
+                  <p className="text-xs text-cc-neutral-500 truncate">{credentialModal.row.bar_id || '暂无门店 ID'}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-cc-neutral-500 mb-1">登录账号（邮箱）</p>
+                <div className="bg-cc-neutral-100 rounded-cc px-3 py-2 text-sm font-semibold text-cc-neutral-800">{credentialModal.row.email}</div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-cc-neutral-500 mb-1">登录密码</p>
+                <div className="bg-cc-neutral-100 rounded-cc px-3 py-2 text-sm text-cc-neutral-800">
+                  {credentialModal.password || '出于安全原因，不保存明文旧密码。请点击下方按钮重置并显示新密码。'}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={!credentialModal.row.id}
+                  onClick={() => handleResetPassword(credentialModal.row)}
+                  className="flex-1 bg-cc-neutral-900 text-white py-2.5 rounded-cc text-sm font-bold disabled:opacity-50"
+                >
+                  重置并显示新密码
+                </button>
+                <button type="button" onClick={copyCredentials} className="px-3 py-2.5 rounded-cc bg-cc-neutral-100 text-cc-neutral-700 text-sm font-bold">
+                  <Copy size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-cc-sm">
         <div className="flex items-center gap-4">
           <Link to="/admin/dashboard" className="text-cc-neutral-500 hover:text-cc-primary flex items-center gap-2 font-medium">
@@ -153,12 +231,24 @@ export default function AdminPartnerAccounts() {
             <div className="space-y-2">
               {list.map((row) => (
                 <div key={row.id} className="rounded-cc border border-cc-border bg-cc-neutral-100/60 px-3 py-2 flex items-center gap-3">
+                  {row.bar_cover_image_url ? (
+                    <img src={row.bar_cover_image_url} alt="" className="w-12 h-12 rounded-cc object-cover border border-cc-border shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-cc bg-cc-neutral-200 shrink-0 flex items-center justify-center text-xs text-cc-neutral-500">门店</div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-cc-neutral-800 truncate">{row.email}</p>
                     <p className="text-xs text-cc-neutral-500 mt-0.5">
-                      {row.bar_id ? `已绑定门店: ${row.bar_id}` : '未绑定门店'} · {row.is_active ? '启用中' : '已停用'} · 创建于 {row.created_at ? new Date(row.created_at).toLocaleString() : '--'}
+                      {row.bar_id ? `门店: ${row.bar_name || row.bar_id}` : '未绑定门店'} · {row.is_active ? '启用中' : '已停用'} · 创建于 {row.created_at ? new Date(row.created_at).toLocaleString() : '--'}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => openCredentialModal(row)}
+                    className="px-3 py-1.5 rounded-cc bg-sky-100 text-sky-700 text-xs font-bold flex items-center gap-1"
+                  >
+                    <Eye size={12} /> 查看账号
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleResetPassword(row)}

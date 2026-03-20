@@ -42,7 +42,30 @@ export default async function handler(req, res) {
       .select('id, email, bar_id, is_active, last_login_at, created_at, updated_at')
       .order('created_at', { ascending: false })
     if (error) return json(res, 500, { ok: false, message: error.message || '查询失败' })
-    return json(res, 200, { ok: true, list: data || [] })
+
+    const list = data || []
+    const barIds = Array.from(new Set(list.map((row) => row.bar_id).filter(Boolean)))
+    let barMap = {}
+    if (barIds.length) {
+      const { data: bars, error: barsError } = await memFire
+        .from('bars')
+        .select('id, name, cover_image_url, image_name')
+        .in('id', barIds)
+      if (barsError) return json(res, 500, { ok: false, message: barsError.message || '查询门店信息失败' })
+      barMap = (bars || []).reduce((acc, bar) => {
+        acc[bar.id] = {
+          bar_name: bar.name || '',
+          bar_cover_image_url: bar.cover_image_url || bar.image_name || ''
+        }
+        return acc
+      }, {})
+    }
+
+    const enriched = list.map((row) => ({
+      ...row,
+      ...(row.bar_id ? barMap[row.bar_id] || { bar_name: '', bar_cover_image_url: '' } : { bar_name: '', bar_cover_image_url: '' })
+    }))
+    return json(res, 200, { ok: true, list: enriched })
   }
 
   if (req.method !== 'POST') {
