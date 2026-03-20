@@ -17,6 +17,7 @@ import AuditActivities from './pages/AuditActivities'
 import AppConfig from './pages/AppConfig'
 import MerchantProfileReviews from './pages/MerchantProfileReviews'
 import AdminPartnerAccounts from './pages/AdminPartnerAccounts'
+import AdminLoginAuditLogs from './pages/AdminLoginAuditLogs'
 
 const PARTNER_DOMAIN = 'partner.cupcup.club'
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="/admin/audit-activities" element={<AdminGuard><AuditActivities /></AdminGuard>} />
           <Route path="/admin/merchant-reviews" element={<AdminGuard><MerchantProfileReviews /></AdminGuard>} />
           <Route path="/admin/partner-accounts" element={<AdminGuard><AdminPartnerAccounts /></AdminGuard>} />
+          <Route path="/admin/login-audit" element={<AdminGuard><AdminLoginAuditLogs /></AdminGuard>} />
           <Route path="/admin/app-config" element={<AdminGuard><AppConfig /></AdminGuard>} />
           <Route path="/" element={<RootRedirect />} />
           <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
