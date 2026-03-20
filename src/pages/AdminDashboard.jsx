@@ -706,47 +706,6 @@ function AdminDashboard() {
           </div>
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">录入店铺</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <Link
-            to="/admin/app-config"
-            className="text-xs font-bold text-cc-primary hover:opacity-90 bg-cc-primary-subtle px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            <Settings size={12} /> App 配置
-          </Link>
-          <Link
-            to="/admin/audit-activities"
-            className="text-xs font-bold text-cc-warning hover:opacity-90 bg-cc-warning-bg px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            <FileText size={12} /> 活动审核
-          </Link>
-          <Link
-            to="/admin/merchant-reviews"
-            className="text-xs font-bold text-cc-warning hover:opacity-90 bg-cc-warning-bg px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            <FileText size={12} /> 商户审核
-          </Link>
-          <Link
-            to="/admin/partner-accounts"
-            className="text-xs font-bold text-cc-success hover:opacity-90 bg-cc-success-bg px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            <UserPlus size={12} /> 商户账号开通
-          </Link>
-          <Link
-            to="/admin/admin-accounts"
-            className="text-xs font-bold text-indigo-700 hover:opacity-90 bg-indigo-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            <UserPlus size={12} /> 管理员账号
-          </Link>
-          <Link
-            to="/admin/login-audit"
-            className="text-xs font-bold text-sky-700 hover:opacity-90 bg-sky-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
-          >
-            <FileText size={12} /> 登录审计
-          </Link>
-          <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
-            <CheckCircle2 size={12}/> 已连接 MemFire
-          </span>
-        </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
