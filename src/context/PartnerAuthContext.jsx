@@ -3,7 +3,8 @@
  * 登录唯一来源：partner_accounts
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { memFire } from '../lib/memfire'
+import { createClient } from '@supabase/supabase-js'
+import { memFire as baseMemFire } from '../lib/memfire'
 
 export { memFire }
 
@@ -11,6 +12,41 @@ const STORAGE_BAR_ID = 'partner_bar_id'
 const STORAGE_BAR_INFO = 'partner_bar_info'
 const STORAGE_PARTNER_ACCOUNT = 'partner_account'
 const STORAGE_BAR_REMOVED_BY_ADMIN = 'partner_bar_removed_by_admin'
+const STORAGE_PARTNER_TOKEN = 'partner_session_token'
+
+const MEMFIRE_URL = import.meta.env.VITE_MEMFIRE_URL || 'https://d647ojgg91hgk1gnpfqg.baseapi.memfiredb.com'
+const MEMFIRE_ANON_KEY = import.meta.env.VITE_MEMFIRE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImV4cCI6MzM0NzM1MjM5OCwiaWF0IjoxNzcwNTUyMzk4LCJpc3MiOiJzdXBhYmFzZSJ9.jWRdDqRdG9hx0UCDtHdM6xmUmmALuxFaQoaaLbIpmmU'
+
+let runtimePartnerToken = typeof window !== 'undefined' ? (localStorage.getItem(STORAGE_PARTNER_TOKEN) || '') : ''
+const scopedClientCache = new Map()
+
+function getScopedClient() {
+  if (!runtimePartnerToken) return baseMemFire
+  const key = runtimePartnerToken
+  if (scopedClientCache.has(key)) return scopedClientCache.get(key)
+  const client = createClient(MEMFIRE_URL, MEMFIRE_ANON_KEY, {
+    auth: { persistSession: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${key}`
+      }
+    }
+  })
+  scopedClientCache.set(key, client)
+  return client
+}
+
+function setRuntimeToken(token) {
+  runtimePartnerToken = token || ''
+}
+
+const memFire = new Proxy({}, {
+  get(_target, prop) {
+    const client = getScopedClient()
+    const value = client[prop]
+    return typeof value === 'function' ? value.bind(client) : value
+  }
+})
 
 const PartnerAuthContext = createContext(null)
 
@@ -35,6 +71,7 @@ export function PartnerAuthProvider({ children }) {
   })
   const [loading, setLoading] = useState(true)
   const [barRemovedByAdmin, setBarRemovedByAdmin] = useState(() => localStorage.getItem(STORAGE_BAR_REMOVED_BY_ADMIN) === 'true')
+  const [partnerToken, setPartnerToken] = useState(() => localStorage.getItem(STORAGE_PARTNER_TOKEN) || '')
 
   const normalizeBarInfo = useCallback((data) => ({
     ...data,
@@ -60,6 +97,14 @@ export function PartnerAuthProvider({ children }) {
     setPartnerAccount(account)
     if (account) localStorage.setItem(STORAGE_PARTNER_ACCOUNT, JSON.stringify(account))
     else localStorage.removeItem(STORAGE_PARTNER_ACCOUNT)
+  }, [])
+
+  const persistPartnerToken = useCallback((token) => {
+    const next = token || ''
+    setPartnerToken(next)
+    setRuntimeToken(next)
+    if (next) localStorage.setItem(STORAGE_PARTNER_TOKEN, next)
+    else localStorage.removeItem(STORAGE_PARTNER_TOKEN)
   }, [])
 
   const persistBarRemovedByAdmin = useCallback((value) => {
@@ -88,6 +133,7 @@ export function PartnerAuthProvider({ children }) {
 
     const account = payload.account
     if (!account?.id || !account?.email) throw new Error('登录返回异常，请稍后重试')
+    persistPartnerToken(payload.sessionToken || '')
     persistPartnerAccount({ id: account.id, email: account.email, bar_id: account.bar_id || null })
 
     if (account.bar_id) {
@@ -108,14 +154,15 @@ export function PartnerAuthProvider({ children }) {
     persistBar(null, null)
     setUser({ id: account.id })
     return { id: account.id, email: account.email, bar_id: account.bar_id || null }
-  }, [persistBar, persistPartnerAccount, normalizeBarInfo, persistBarRemovedByAdmin])
+  }, [persistBar, persistPartnerAccount, normalizeBarInfo, persistBarRemovedByAdmin, persistPartnerToken])
 
   const logout = useCallback(() => {
     setUser(null)
     persistBar(null, null)
     persistPartnerAccount(null)
+    persistPartnerToken('')
     persistBarRemovedByAdmin(false)
-  }, [persistBar, persistPartnerAccount, persistBarRemovedByAdmin])
+  }, [persistBar, persistPartnerAccount, persistBarRemovedByAdmin, persistPartnerToken])
 
   const refreshPartnerSession = useCallback(async () => {
     if (!partnerAccount?.id) return
@@ -233,6 +280,7 @@ export function PartnerAuthProvider({ children }) {
     barInfo,
     barRemovedByAdmin,
     partnerAccount,
+    partnerToken,
     loading,
     login,
     logout,

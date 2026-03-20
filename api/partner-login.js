@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 
 const TABLE = 'partner_accounts'
 const AUDIT_TABLE = 'partner_login_audit_logs'
@@ -32,6 +32,31 @@ function formatLockUntil(ts) {
   const dt = new Date(ts)
   if (Number.isNaN(dt.getTime())) return ''
   return dt.toLocaleString('zh-CN', { hour12: false })
+}
+
+function base64url(input) {
+  return Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+function signPartnerSessionToken({ jwtSecret, accountId, email }) {
+  if (!jwtSecret) return null
+  const header = { alg: 'HS256', typ: 'JWT' }
+  const now = Math.floor(Date.now() / 1000)
+  const payload = {
+    role: 'authenticated',
+    aud: 'authenticated',
+    iss: 'cupcup-admin',
+    iat: now,
+    exp: now + 12 * 60 * 60,
+    sub: String(accountId),
+    partner_account_id: String(accountId),
+    email: String(email || '').toLowerCase()
+  }
+  const encodedHeader = base64url(JSON.stringify(header))
+  const encodedPayload = base64url(JSON.stringify(payload))
+  const body = `${encodedHeader}.${encodedPayload}`
+  const sig = createHmac('sha256', jwtSecret).update(body).digest('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  return `${body}.${sig}`
 }
 
 function createAuthError(message, code, status = 400) {
@@ -247,6 +272,7 @@ export default async function handler(req, res) {
 
   const memFireUrl = getEnv('MEMFIRE_URL') || getEnv('VITE_MEMFIRE_URL')
   const memFireServiceRoleKey = getEnv('MEMFIRE_SERVICE_ROLE_KEY')
+  const memFireJwtSecret = getEnv('MEMFIRE_JWT_SECRET')
   if (!memFireUrl || !memFireServiceRoleKey) {
     return json(res, 500, { ok: false, message: '缺少 MEMFIRE_URL 或 MEMFIRE_SERVICE_ROLE_KEY 环境变量' })
   }
@@ -262,7 +288,12 @@ export default async function handler(req, res) {
     const userAgent = (body.userAgent || req.headers['user-agent'] || '').toString()
     const ip = getIp(req) || null
     const account = await loginPartner(memFire, { email, password, ip, userAgent })
-    return json(res, 200, { ok: true, account })
+    const sessionToken = signPartnerSessionToken({
+      jwtSecret: memFireJwtSecret,
+      accountId: account.id,
+      email: account.email
+    })
+    return json(res, 200, { ok: true, account, sessionToken })
   } catch (error) {
     const status = Number(error?.status || 500)
     const code = error?.code || 'UNKNOWN'
