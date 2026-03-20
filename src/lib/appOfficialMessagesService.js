@@ -113,12 +113,13 @@ async function fetchProfileAudienceUserIds() {
 }
 
 async function fetchAllAudienceUserIds() {
-  const [profileIds, cardUserIds, ssrUserIds] = await Promise.all([
+  const [profileIds, cardUserIds, ssrUserIds, messageUserIds] = await Promise.all([
     fetchProfileAudienceUserIds(),
     fetchAllValuesFromTable(COLLECTED_CARDS_TABLE, 'user_id'),
-    fetchAllValuesFromTable(USER_SSR_CARDS_TABLE, 'user_id')
+    fetchAllValuesFromTable(USER_SSR_CARDS_TABLE, 'user_id'),
+    fetchAllValuesFromTable(USER_MESSAGES_TABLE, 'user_id')
   ])
-  return [...new Set([...profileIds, ...cardUserIds, ...ssrUserIds])]
+  return [...new Set([...profileIds, ...cardUserIds, ...ssrUserIds, ...messageUserIds])]
 }
 
 async function insertUserMessagesInBatches(rows) {
