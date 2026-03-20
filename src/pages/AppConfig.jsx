@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Wine, Loader2, Save, CheckCircle2, Settings, CalendarCheck, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import { Wine, Loader2, Save, Settings, CalendarCheck, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { memFire } from '../lib/memfire'
 import { isAdminAuthenticated } from '../lib/adminSession'
 
@@ -212,14 +212,6 @@ export default function AppConfig() {
             <Settings size={20} strokeWidth={1.5} />
           </div>
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">App 配置</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link to="/admin/audit-activities" className="text-xs font-bold text-cc-warning hover:opacity-90 bg-cc-warning-bg px-3 py-1.5 rounded-full flex items-center gap-1.5">
-            活动审核
-          </Link>
-          <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
-            <CheckCircle2 size={12} /> 已连接 MemFire
-          </span>
         </div>
       </nav>
 
