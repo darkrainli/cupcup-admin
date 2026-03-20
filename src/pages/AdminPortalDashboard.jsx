@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { CheckCircle2, FileText, MapPin, Settings, Shield, Ticket, UserPlus } from 'lucide-react'
+import { CheckCircle2, FileText, MapPin, Settings, Shield, Ticket, UserPlus, Users } from 'lucide-react'
 import { clearAdminSession, isAdminAuthenticated } from '../lib/adminSession'
 
 const MODULES = [
@@ -34,6 +34,14 @@ const MODULES = [
     to: '/admin/partner-accounts',
     icon: UserPlus,
     badgeClass: 'bg-cc-success-bg text-cc-success'
+  },
+  {
+    key: 'admin-accounts',
+    title: '管理员账号',
+    desc: '管理管理员账号，支持新增、重置密码和启停用。',
+    to: '/admin/admin-accounts',
+    icon: Users,
+    badgeClass: 'bg-indigo-100 text-indigo-700'
   },
   {
     key: 'login-audit',

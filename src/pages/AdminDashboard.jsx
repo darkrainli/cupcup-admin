@@ -732,6 +732,12 @@ function AdminDashboard() {
             <UserPlus size={12} /> 商户账号开通
           </Link>
           <Link
+            to="/admin/admin-accounts"
+            className="text-xs font-bold text-indigo-700 hover:opacity-90 bg-indigo-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
+          >
+            <UserPlus size={12} /> 管理员账号
+          </Link>
+          <Link
             to="/admin/login-audit"
             className="text-xs font-bold text-sky-700 hover:opacity-90 bg-sky-100 px-3 py-1.5 rounded-full flex items-center gap-1.5"
           >
