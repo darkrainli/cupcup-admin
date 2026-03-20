@@ -86,9 +86,35 @@ async function fetchAllValuesFromTable(table, field) {
   return values
 }
 
+async function fetchProfileAudienceUserIds() {
+  const pageSize = 1000
+  let from = 0
+  const values = []
+
+  while (true) {
+    const to = from + pageSize - 1
+    const { data, error } = await memFire
+      .from(PROFILES_TABLE)
+      .select('id,cup_id')
+      .range(from, to)
+
+    if (error) throw error
+    if (!data?.length) break
+
+    for (const row of data) {
+      if (row?.id) values.push(row.id)
+      if (row?.cup_id) values.push(row.cup_id)
+    }
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+
+  return values
+}
+
 async function fetchAllAudienceUserIds() {
   const [profileIds, cardUserIds, ssrUserIds] = await Promise.all([
-    fetchAllValuesFromTable(PROFILES_TABLE, 'id'),
+    fetchProfileAudienceUserIds(),
     fetchAllValuesFromTable(COLLECTED_CARDS_TABLE, 'user_id'),
     fetchAllValuesFromTable(USER_SSR_CARDS_TABLE, 'user_id')
   ])
