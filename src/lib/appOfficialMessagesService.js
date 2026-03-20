@@ -3,6 +3,7 @@ import { memFire } from './memfire'
 const ANNOUNCEMENTS_TABLE = 'app_announcements'
 const USER_MESSAGES_TABLE = 'user_messages'
 const PROFILES_TABLE = 'profiles'
+const COVER_BUCKET = 'cup-images'
 
 export async function fetchAnnouncements() {
   const { data, error } = await memFire
@@ -12,6 +13,16 @@ export async function fetchAnnouncements() {
 
   if (error) throw error
   return data || []
+}
+
+export async function uploadAnnouncementCover(file) {
+  const ext = (file?.name?.split('.').pop() || 'jpg').toLowerCase()
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg'
+  const path = `official-banners/${Date.now()}_${Math.random().toString(36).slice(2, 10)}.${safeExt}`
+  const { error } = await memFire.storage.from(COVER_BUCKET).upload(path, file)
+  if (error) throw error
+  const { data } = memFire.storage.from(COVER_BUCKET).getPublicUrl(path)
+  return data.publicUrl
 }
 
 export async function upsertAnnouncement(payload) {

@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { ArrowLeft, Megaphone, Loader2, Send, Save, Pencil, FileText } from 'lucide-react'
+import imageCompression from 'browser-image-compression'
+import { ArrowLeft, Megaphone, Loader2, Send, Save, Pencil, FileText, Upload, Scissors } from 'lucide-react'
 import { isAdminAuthenticated } from '../lib/adminSession'
 import {
   fetchAnnouncements,
   publishAnnouncementAndPushMessages,
-  upsertAnnouncement
+  upsertAnnouncement,
+  uploadAnnouncementCover
 } from '../lib/appOfficialMessagesService'
 
 const EMPTY_FORM = {
@@ -24,13 +26,53 @@ function prettyTime(ts) {
   return d.toLocaleString()
 }
 
+async function getCroppedBannerFile(imageSrc, pixelCrop) {
+  const image = new Image()
+  image.src = imageSrc
+  await new Promise((resolve) => {
+    image.onload = resolve
+  })
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = Math.max(1, Math.round(pixelCrop.width))
+  canvas.height = Math.max(1, Math.round(pixelCrop.height))
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  )
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return reject(new Error('封面裁剪失败'))
+        resolve(new File([blob], `official_banner_${Date.now()}.jpg`, { type: 'image/jpeg' }))
+      },
+      'image/jpeg',
+      0.92
+    )
+  })
+}
+
 export default function AppOfficialMessages() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [publishingId, setPublishingId] = useState(null)
+  const [coverUploading, setCoverUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [list, setList] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
+  const [cropModal, setCropModal] = useState({ show: false, image: null })
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [CropperComponent, setCropperComponent] = useState(null)
+  const fileInputRef = useRef(null)
 
   const isAuthenticated = isAdminAuthenticated()
   const isEditing = Boolean(form.id)
@@ -51,6 +93,12 @@ export default function AppOfficialMessages() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (cropModal.show && !CropperComponent) {
+      import('react-easy-crop').then((m) => setCropperComponent(() => m.default))
+    }
+  }, [cropModal.show, CropperComponent])
 
   const statusClass = useMemo(() => ({
     draft: 'bg-cc-neutral-100 text-cc-neutral-600',
@@ -109,6 +157,45 @@ export default function AppOfficialMessages() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const onCropComplete = useCallback((_, area) => {
+    setCroppedAreaPixels(area)
+  }, [])
+
+  function handleCoverSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setCroppedAreaPixels(null)
+    setCropModal({ show: true, image: url })
+    e.target.value = ''
+  }
+
+  async function handleCropUpload() {
+    if (!cropModal.image || !croppedAreaPixels) {
+      setErrorMsg('请先调整 16:9 横幅裁剪区域')
+      return
+    }
+    setCoverUploading(true)
+    setErrorMsg('')
+    try {
+      const cropped = await getCroppedBannerFile(cropModal.image, croppedAreaPixels)
+      const compressed = await imageCompression(cropped, {
+        maxSizeMB: 0.6,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+      })
+      const url = await uploadAnnouncementCover(compressed)
+      setForm((s) => ({ ...s, cover_image_url: url }))
+      setCropModal({ show: false, image: null })
+    } catch (err) {
+      setErrorMsg(err?.message || '封面图上传失败')
+    } finally {
+      setCoverUploading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-cc-neutral-50">
       <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-cc-sm">
@@ -148,13 +235,42 @@ export default function AppOfficialMessages() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">封面图 URL（可选）</label>
-              <input
-                value={form.cover_image_url}
-                onChange={(e) => setForm((s) => ({ ...s, cover_image_url: e.target.value }))}
-                className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 outline-none"
-                placeholder="https://..."
-              />
+              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">封面图（16:9 横幅）</label>
+              <div className="w-full aspect-[16/9] rounded-cc overflow-hidden border border-cc-border bg-cc-neutral-100 mb-2">
+                {form.cover_image_url ? (
+                  <img src={form.cover_image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-cc-neutral-500">
+                    暂无封面图（建议 16:9）
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-cc-neutral-100 text-cc-neutral-700 font-bold px-3 py-2 rounded-cc inline-flex items-center gap-1.5"
+                >
+                  <Upload size={14} /> 上传封面图
+                </button>
+                {form.cover_image_url ? (
+                  <button
+                    type="button"
+                    onClick={() => setForm((s) => ({ ...s, cover_image_url: '' }))}
+                    className="bg-cc-neutral-100 text-cc-neutral-600 font-bold px-3 py-2 rounded-cc"
+                  >
+                    清空
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[11px] text-cc-neutral-500">上传后会先裁成 16:9 横幅，再压缩并存储。</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-cc-neutral-500 mb-2">正文（支持图文混排内容文本）</label>
@@ -246,6 +362,60 @@ export default function AppOfficialMessages() {
           </div>
         </section>
       </div>
+
+      {cropModal.show ? (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl bg-cc-surface rounded-cc-xl border border-cc-border shadow-cc p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-cc-neutral-800 inline-flex items-center gap-1.5">
+                <Scissors size={14} /> 裁剪封面图（16:9）
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCropModal({ show: false, image: null })}
+                className="text-xs font-bold text-cc-neutral-500"
+              >
+                取消
+              </button>
+            </div>
+            <div className="relative w-full aspect-[16/9] rounded-cc overflow-hidden bg-black/10">
+              {cropModal.image && CropperComponent ? (
+                <CropperComponent
+                  image={cropModal.image}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={16 / 9}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs text-cc-neutral-500">
+                  载入裁剪器中...
+                </div>
+              )}
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCropModal({ show: false, image: null })}
+                className="bg-cc-neutral-100 text-cc-neutral-600 font-bold px-3 py-2 rounded-cc"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={coverUploading}
+                onClick={handleCropUpload}
+                className="bg-cc-primary text-white font-bold px-3 py-2 rounded-cc inline-flex items-center gap-1.5 disabled:opacity-60"
+              >
+                {coverUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {coverUploading ? '上传中…' : '确认裁剪并上传'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
