@@ -1,0 +1,251 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import { ArrowLeft, Megaphone, Loader2, Send, Save, Pencil, FileText } from 'lucide-react'
+import { isAdminAuthenticated } from '../lib/adminSession'
+import {
+  fetchAnnouncements,
+  publishAnnouncementAndPushMessages,
+  upsertAnnouncement
+} from '../lib/appOfficialMessagesService'
+
+const EMPTY_FORM = {
+  id: null,
+  title: '',
+  summary: '',
+  content: '',
+  cover_image_url: '',
+  status: 'draft'
+}
+
+function prettyTime(ts) {
+  if (!ts) return '--'
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return '--'
+  return d.toLocaleString()
+}
+
+export default function AppOfficialMessages() {
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [publishingId, setPublishingId] = useState(null)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [list, setList] = useState([])
+  const [form, setForm] = useState(EMPTY_FORM)
+
+  const isAuthenticated = isAdminAuthenticated()
+  const isEditing = Boolean(form.id)
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setErrorMsg('')
+    try {
+      const rows = await fetchAnnouncements()
+      setList(rows)
+    } catch (err) {
+      setErrorMsg(err?.message || '加载官方消息失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const statusClass = useMemo(() => ({
+    draft: 'bg-cc-neutral-100 text-cc-neutral-600',
+    published: 'bg-cc-success-bg text-cc-success',
+    archived: 'bg-cc-warning-bg text-cc-warning'
+  }), [])
+
+  if (!isAuthenticated) return <Navigate to="/admin/bars" replace />
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    setErrorMsg('')
+    try {
+      const saved = await upsertAnnouncement(form)
+      setForm({
+        id: saved.id,
+        title: saved.title || '',
+        summary: saved.summary || '',
+        content: saved.content || '',
+        cover_image_url: saved.cover_image_url || '',
+        status: saved.status || 'draft'
+      })
+      await loadData()
+      alert(isEditing ? '保存成功' : '创建成功')
+    } catch (err) {
+      setErrorMsg(err?.message || '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handlePublish(row) {
+    setPublishingId(row.id)
+    setErrorMsg('')
+    try {
+      const result = await publishAnnouncementAndPushMessages(row)
+      await loadData()
+      alert(`发布成功，已推送 ${result.pushed} 条系统公告消息`)
+    } catch (err) {
+      setErrorMsg(err?.message || '发布失败')
+    } finally {
+      setPublishingId(null)
+    }
+  }
+
+  function editRow(row) {
+    setForm({
+      id: row.id,
+      title: row.title || '',
+      summary: row.summary || '',
+      content: row.content || '',
+      cover_image_url: row.cover_image_url || '',
+      status: row.status || 'draft'
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="min-h-screen bg-cc-neutral-50">
+      <nav className="bg-cc-surface/80 backdrop-blur-sm border-b border-cc-border px-6 py-4 sticky top-0 z-40 flex items-center justify-between shadow-cc-sm">
+        <div className="flex items-center gap-2.5">
+          <Link to="/admin/dashboard" className="text-cc-neutral-500 hover:text-cc-primary flex items-center gap-2 font-medium">
+            <ArrowLeft size={18} strokeWidth={1.5} /> CupCup管理首页
+          </Link>
+          <div className="h-5 w-px bg-cc-border" />
+          <div className="flex items-center gap-2">
+            <div className="bg-slate-100 text-slate-700 p-2 rounded-cc"><Megaphone size={20} strokeWidth={1.5} /></div>
+            <h1 className="text-lg font-semibold text-cc-neutral-800">App 官方消息</h1>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <section className="lg:col-span-2 bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-6">
+          <h2 className="text-base font-bold text-cc-neutral-800 mb-4">{isEditing ? '编辑公告' : '新建公告'}</h2>
+          <form className="space-y-4" onSubmit={handleSave}>
+            <div>
+              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">标题</label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
+                className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 outline-none"
+                placeholder="例如：CupCup 本周更新说明"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">摘要（列表文案）</label>
+              <textarea
+                rows={2}
+                value={form.summary}
+                onChange={(e) => setForm((s) => ({ ...s, summary: e.target.value }))}
+                className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 outline-none resize-none"
+                placeholder="例如：本周新增打卡消息中心，优化首页卡片流畅度。"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">封面图 URL（可选）</label>
+              <input
+                value={form.cover_image_url}
+                onChange={(e) => setForm((s) => ({ ...s, cover_image_url: e.target.value }))}
+                className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 outline-none"
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-cc-neutral-500 mb-2">正文（支持图文混排内容文本）</label>
+              <textarea
+                rows={10}
+                value={form.content}
+                onChange={(e) => setForm((s) => ({ ...s, content: e.target.value }))}
+                className="w-full bg-cc-neutral-100 border-0 rounded-cc px-4 py-3 outline-none resize-y"
+                placeholder="在这里输入官方消息正文..."
+              />
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-cc-primary text-white font-bold px-4 py-2.5 rounded-cc inline-flex items-center gap-2 disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {saving ? '保存中…' : '保存公告'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(EMPTY_FORM)}
+                className="bg-cc-neutral-100 text-cc-neutral-600 font-bold px-4 py-2.5 rounded-cc"
+              >
+                新建一条
+              </button>
+            </div>
+          </form>
+          {errorMsg ? <p className="mt-4 text-sm font-semibold text-cc-error">{errorMsg}</p> : null}
+        </section>
+
+        <section className="lg:col-span-3 bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-cc-neutral-800">公告列表</h2>
+            <button type="button" onClick={loadData} className="text-xs font-bold text-cc-primary">刷新</button>
+          </div>
+
+          {loading ? (
+            <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-cc-primary" /></div>
+          ) : list.length === 0 ? (
+            <div className="rounded-cc border border-dashed border-cc-border py-10 text-center text-sm font-semibold text-cc-neutral-500">
+              暂无官方消息
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {list.map((row) => (
+                <li key={row.id} className="rounded-cc-xl border border-cc-border bg-cc-neutral-50/50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-bold text-cc-neutral-800 truncate">{row.title || '未命名公告'}</p>
+                      <p className="text-xs text-cc-neutral-500 mt-1 line-clamp-2">{row.summary || row.content || '暂无摘要'}</p>
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-cc-neutral-500">
+                        <span className={`px-2 py-0.5 rounded-full font-bold ${statusClass[row.status] || statusClass.draft}`}>
+                          {row.status === 'published' ? '已发布' : row.status === 'archived' ? '已归档' : '草稿'}
+                        </span>
+                        <span>创建：{prettyTime(row.created_at)}</span>
+                        {row.published_at ? <span>发布：{prettyTime(row.published_at)}</span> : null}
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => editRow(row)}
+                        className="text-xs font-bold px-3 py-1.5 rounded-full bg-cc-neutral-100 text-cc-neutral-700 inline-flex items-center gap-1"
+                      >
+                        <Pencil size={12} /> 编辑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePublish(row)}
+                        disabled={publishingId === row.id}
+                        className="text-xs font-bold px-3 py-1.5 rounded-full bg-cc-success-bg text-cc-success inline-flex items-center gap-1 disabled:opacity-60"
+                      >
+                        {publishingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                        发布
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="mt-5 rounded-cc border border-dashed border-cc-border bg-cc-neutral-100/60 p-3 text-xs text-cc-neutral-600">
+            <p className="font-bold mb-1 inline-flex items-center gap-1"><FileText size={12} /> 发布说明</p>
+            <p>1. 发布后会向所有用户写入一条 `system_announcement` 消息。</p>
+            <p>2. App 端系统公告可从消息列表进入详情页；其它类型消息仅列表展示。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}

@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { CheckCircle2, FileText, MapPin, Settings, Shield, Ticket, UserPlus, Users } from 'lucide-react'
+import { CheckCircle2, FileText, MapPin, Megaphone, Settings, Shield, Ticket, UserPlus, Users } from 'lucide-react'
 import { clearAdminSession, isAdminAuthenticated } from '../lib/adminSession'
 
 const MODULES = [
@@ -65,6 +65,14 @@ const MODULES = [
     desc: '配置识别模型、每日打卡限制及其它全局运行参数。',
     to: '/admin/app-config',
     icon: Settings,
+    badgeClass: 'bg-slate-100 text-slate-700'
+  },
+  {
+    key: 'app-official-messages',
+    title: 'App 官方消息',
+    desc: '编辑并发布 App 官方图文公告，发布后写入用户系统公告消息。',
+    to: '/admin/app-official-messages',
+    icon: Megaphone,
     badgeClass: 'bg-slate-100 text-slate-700'
   }
 ]

@@ -22,6 +22,7 @@ const AdminPartnerAccounts = lazy(() => import('./pages/AdminPartnerAccounts'))
 const AdminLoginAuditLogs = lazy(() => import('./pages/AdminLoginAuditLogs'))
 const AdminAccounts = lazy(() => import('./pages/AdminAccounts'))
 const PartnerLoginAuditLogs = lazy(() => import('./pages/PartnerLoginAuditLogs'))
+const AppOfficialMessages = lazy(() => import('./pages/AppOfficialMessages'))
 
 const PARTNER_DOMAIN = 'partner.cupcup.club'
 
@@ -63,6 +64,7 @@ function App() {
             <Route path="/admin/login-audit" element={<AdminGuard><AdminLoginAuditLogs /></AdminGuard>} />
             <Route path="/admin/partner-login-audit" element={<AdminGuard><PartnerLoginAuditLogs /></AdminGuard>} />
             <Route path="/admin/app-config" element={<AdminGuard><AppConfig /></AdminGuard>} />
+            <Route path="/admin/app-official-messages" element={<AdminGuard><AppOfficialMessages /></AdminGuard>} />
             <Route path="/" element={<RootRedirect />} />
             <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
           </Routes>
