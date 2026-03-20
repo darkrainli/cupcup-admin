@@ -134,6 +134,10 @@ async function insertUserMessagesInBatches(rows) {
 export async function publishAnnouncementAndPushMessages(announcementInput) {
   let announcement = announcementInput
 
+  if (announcement.status === 'published') {
+    return { pushed: 0, announcement }
+  }
+
   if (announcement.status !== 'published') {
     const { data, error } = await memFire
       .from(ANNOUNCEMENTS_TABLE)
@@ -166,4 +170,20 @@ export async function publishAnnouncementAndPushMessages(announcementInput) {
 
   await insertUserMessagesInBatches(messageRows)
   return { pushed: messageRows.length, announcement }
+}
+
+export async function deleteAnnouncementById(announcementId) {
+  if (!announcementId) throw new Error('公告 ID 无效')
+
+  const { error: msgError } = await memFire
+    .from(USER_MESSAGES_TABLE)
+    .delete()
+    .eq('announcement_id', announcementId)
+  if (msgError) throw msgError
+
+  const { error: annError } = await memFire
+    .from(ANNOUNCEMENTS_TABLE)
+    .delete()
+    .eq('id', announcementId)
+  if (annError) throw annError
 }

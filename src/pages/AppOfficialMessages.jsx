@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import imageCompression from 'browser-image-compression'
-import { ArrowLeft, Megaphone, Loader2, Send, Save, Pencil, FileText, Upload, Scissors } from 'lucide-react'
+import { ArrowLeft, Megaphone, Loader2, Send, Save, Pencil, FileText, Upload, Scissors, Trash2 } from 'lucide-react'
 import { isAdminAuthenticated } from '../lib/adminSession'
 import {
+  deleteAnnouncementById,
   fetchAnnouncements,
   publishAnnouncementAndPushMessages,
   upsertAnnouncement,
@@ -63,6 +64,7 @@ export default function AppOfficialMessages() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [publishingId, setPublishingId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
   const [coverUploading, setCoverUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [list, setList] = useState([])
@@ -132,16 +134,38 @@ export default function AppOfficialMessages() {
   }
 
   async function handlePublish(row) {
+    if (row.status === 'published') return
     setPublishingId(row.id)
     setErrorMsg('')
     try {
       const result = await publishAnnouncementAndPushMessages(row)
       await loadData()
-      alert(`发布成功，已推送 ${result.pushed} 条系统公告消息`)
+      if (result.pushed > 0) {
+        alert(`发布成功，已推送 ${result.pushed} 条系统公告消息`)
+      } else {
+        alert('该公告已发布，无需重复发布')
+      }
     } catch (err) {
       setErrorMsg(err?.message || '发布失败')
     } finally {
       setPublishingId(null)
+    }
+  }
+
+  async function handleDelete(row) {
+    const ok = window.confirm(`确认删除公告「${row.title || '未命名公告'}」？删除后不可恢复。`)
+    if (!ok) return
+    setDeletingId(row.id)
+    setErrorMsg('')
+    try {
+      await deleteAnnouncementById(row.id)
+      if (form.id === row.id) setForm(EMPTY_FORM)
+      await loadData()
+      alert('公告已删除')
+    } catch (err) {
+      setErrorMsg(err?.message || '删除失败')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -342,11 +366,24 @@ export default function AppOfficialMessages() {
                       <button
                         type="button"
                         onClick={() => handlePublish(row)}
-                        disabled={publishingId === row.id}
-                        className="text-xs font-bold px-3 py-1.5 rounded-full bg-cc-success-bg text-cc-success inline-flex items-center gap-1 disabled:opacity-60"
+                        disabled={publishingId === row.id || deletingId === row.id || row.status === 'published'}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1 disabled:opacity-60 ${
+                          row.status === 'published'
+                            ? 'bg-cc-neutral-100 text-cc-neutral-400 cursor-not-allowed'
+                            : 'bg-cc-success-bg text-cc-success'
+                        }`}
                       >
                         {publishingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                        立即发布
+                        {row.status === 'published' ? '已发布' : '立即发布'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(row)}
+                        disabled={deletingId === row.id || publishingId === row.id}
+                        className="text-xs font-bold px-3 py-1.5 rounded-full bg-cc-error-bg text-cc-error inline-flex items-center gap-1 disabled:opacity-60"
+                      >
+                        {deletingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        删除
                       </button>
                     </div>
                   </div>
