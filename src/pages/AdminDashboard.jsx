@@ -770,7 +770,7 @@ function AdminDashboard() {
               <div>
                 <label className="block text-sm font-bold text-cc-neutral-500 mb-2">店铺名称</label>
                 <input required className="w-full bg-cc-neutral-100 border-0 rounded-cc-xl px-4 py-3 focus:ring-2 focus:ring-cc-primary transition-all" 
-                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="输入酒吧名字..." />
+                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="输入店铺名称..." />
               </div>
 
               <div>
@@ -865,7 +865,7 @@ function AdminDashboard() {
         {/* 右侧：已发布酒吧列表（可拖拽排序） */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-extrabold text-cc-neutral-800">已发布的酒吧</h2>
+            <h2 className="text-2xl font-extrabold text-cc-neutral-800">已发布店铺</h2>
             <div className="flex items-center gap-3">
               {barsSavingOrder && <span className="text-xs text-cc-warning font-bold flex items-center gap-1"><Loader2 className="animate-spin" size={14} /> 保存顺序中…</span>}
               <button onClick={fetchBars} className="text-sm font-bold text-cc-primary">刷新</button>
