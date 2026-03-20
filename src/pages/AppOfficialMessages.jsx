@@ -123,7 +123,7 @@ export default function AppOfficialMessages() {
         status: saved.status || 'draft'
       })
       await loadData()
-      alert(isEditing ? '保存成功' : '创建成功')
+      alert(isEditing ? '草稿已保存（未推送）。需点击“立即发布”才会推送到 App。' : '草稿已创建（未推送）。需点击“立即发布”才会推送到 App。')
     } catch (err) {
       setErrorMsg(err?.message || '保存失败')
     } finally {
@@ -289,7 +289,7 @@ export default function AppOfficialMessages() {
                 className="bg-cc-primary text-white font-bold px-4 py-2.5 rounded-cc inline-flex items-center gap-2 disabled:opacity-60"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                {saving ? '保存中…' : '保存公告'}
+                {saving ? '保存中…' : '保存草稿'}
               </button>
               <button
                 type="button"
@@ -346,7 +346,7 @@ export default function AppOfficialMessages() {
                         className="text-xs font-bold px-3 py-1.5 rounded-full bg-cc-success-bg text-cc-success inline-flex items-center gap-1 disabled:opacity-60"
                       >
                         {publishingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                        发布
+                        立即发布
                       </button>
                     </div>
                   </div>
@@ -357,6 +357,7 @@ export default function AppOfficialMessages() {
 
           <div className="mt-5 rounded-cc border border-dashed border-cc-border bg-cc-neutral-100/60 p-3 text-xs text-cc-neutral-600">
             <p className="font-bold mb-1 inline-flex items-center gap-1"><FileText size={12} /> 发布说明</p>
+            <p>0. `保存草稿` 不会推送到 App，需点击 `立即发布` 才会发送消息。</p>
             <p>1. 发布后会向所有用户写入一条 `system_announcement` 消息。</p>
             <p>2. App 端系统公告可从消息列表进入详情页；其它类型消息仅列表展示。</p>
           </div>
