@@ -65,7 +65,55 @@ export default async function handler(req, res) {
       ...row,
       ...(row.bar_id ? barMap[row.bar_id] || { bar_name: '', bar_cover_image_url: '' } : { bar_name: '', bar_cover_image_url: '' })
     }))
-    return json(res, 200, { ok: true, list: enriched })
+
+    const emailSet = Array.from(new Set(enriched.map((row) => (row.email || '').trim().toLowerCase()).filter(Boolean)))
+    let latestByEmail = {}
+    let recentFailCountByEmail = {}
+
+    if (emailSet.length) {
+      const { data: latestLogs, error: latestLogsError } = await memFire
+        .from('partner_login_audit_logs')
+        .select('email, status, ip_address, created_at')
+        .in('email', emailSet)
+        .order('created_at', { ascending: false })
+        .limit(2000)
+      if (latestLogsError) return json(res, 500, { ok: false, message: latestLogsError.message || '查询登录审计失败' })
+
+      for (const row of latestLogs || []) {
+        const key = (row.email || '').trim().toLowerCase()
+        if (!key) continue
+        if (!latestByEmail[key]) {
+          latestByEmail[key] = {
+            latest_login_status: row.status || '',
+            latest_login_ip: row.ip_address || '',
+            latest_login_at: row.created_at || null
+          }
+        }
+      }
+
+      const dayAgo = Date.now() - 24 * 60 * 60 * 1000
+      for (const row of latestLogs || []) {
+        const key = (row.email || '').trim().toLowerCase()
+        if (!key || row.status !== 'failure' || !row.created_at) continue
+        const ts = new Date(row.created_at).getTime()
+        if (!Number.isFinite(ts) || ts < dayAgo) continue
+        recentFailCountByEmail[key] = (recentFailCountByEmail[key] || 0) + 1
+      }
+    }
+
+    const finalList = enriched.map((row) => {
+      const key = (row.email || '').trim().toLowerCase()
+      return {
+        ...row,
+        ...(latestByEmail[key] || {
+          latest_login_status: '',
+          latest_login_ip: '',
+          latest_login_at: null
+        }),
+        recent_failed_24h: recentFailCountByEmail[key] || 0
+      }
+    })
+    return json(res, 200, { ok: true, list: finalList })
   }
 
   if (req.method !== 'POST') {

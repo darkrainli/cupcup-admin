@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Copy, Eye, Loader2, RefreshCw, Shield, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Copy, Eye, Loader2, RefreshCw, Shield, UserPlus, X } from 'lucide-react'
+import { memFire } from '../lib/memfire'
 import {
   createPartnerAccount,
   generatePartnerPassword,
@@ -17,6 +18,11 @@ export default function AdminPartnerAccounts() {
   const [password, setPassword] = useState(generatePartnerPassword())
   const [errorMsg, setErrorMsg] = useState('')
   const [credentialModal, setCredentialModal] = useState({ show: false, row: null, password: '' })
+  const [logModal, setLogModal] = useState({ show: false, email: '' })
+  const [logLoading, setLogLoading] = useState(false)
+  const [logList, setLogList] = useState([])
+
+  const hasHighRisk = useMemo(() => list.some((row) => Number(row.recent_failed_24h || 0) >= 5), [list])
 
   const fetchList = useCallback(async () => {
     setLoading(true)
@@ -104,6 +110,40 @@ export default function AdminPartnerAccounts() {
     }
   }
 
+  const openLogModal = async (row) => {
+    const emailValue = (row?.email || '').trim().toLowerCase()
+    if (!emailValue) return
+    setLogModal({ show: true, email: emailValue })
+    setLogLoading(true)
+    try {
+      const { data, error } = await memFire
+        .from('partner_login_audit_logs')
+        .select('id, status, reason, failed_count, locked_until, ip_address, user_agent, created_at')
+        .eq('email', emailValue)
+        .order('created_at', { ascending: false })
+        .limit(120)
+      if (error) throw error
+      setLogList(data || [])
+    } catch (err) {
+      setLogList([])
+      alert(err?.message || '加载登录记录失败')
+    } finally {
+      setLogLoading(false)
+    }
+  }
+
+  const closeLogModal = () => {
+    setLogModal({ show: false, email: '' })
+    setLogList([])
+  }
+
+  const formatTime = (ts) => {
+    if (!ts) return '--'
+    const dt = new Date(ts)
+    if (Number.isNaN(dt.getTime())) return '--'
+    return dt.toLocaleString('zh-CN', { hour12: false })
+  }
+
   return (
     <div className="min-h-screen bg-cc-neutral-50">
       {credentialModal.show && credentialModal.row && (
@@ -151,6 +191,38 @@ export default function AdminPartnerAccounts() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {logModal.show && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6" onClick={closeLogModal}>
+          <div className="bg-cc-surface rounded-cc-2xl shadow-2xl w-full max-w-3xl p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-cc-neutral-800">商户登录记录 · {logModal.email}</h3>
+              <button type="button" onClick={closeLogModal} className="text-cc-neutral-500 hover:text-cc-error"><X size={18} /></button>
+            </div>
+            {logLoading ? (
+              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-cc-primary" size={26} /></div>
+            ) : logList.length === 0 ? (
+              <p className="text-sm text-cc-neutral-500 py-6">暂无记录</p>
+            ) : (
+              <div className="space-y-2">
+                {logList.map((row) => (
+                  <div key={row.id} className="rounded-cc border border-cc-border bg-cc-neutral-100/70 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${row.status === 'success' ? 'bg-cc-success-bg text-cc-success' : 'bg-cc-error-bg text-cc-error'}`}>
+                        {row.status === 'success' ? '成功' : '失败'}
+                      </span>
+                      <span className="text-xs text-cc-neutral-500">{formatTime(row.created_at)}</span>
+                      <span className="text-xs text-cc-neutral-500">IP: {row.ip_address || '--'}</span>
+                      {row.failed_count != null ? <span className="text-xs text-cc-neutral-500">失败计数: {row.failed_count}</span> : null}
+                    </div>
+                    <p className="text-xs text-cc-neutral-600 mt-1">原因: {row.reason || '--'} {row.locked_until ? `· 锁定到: ${formatTime(row.locked_until)}` : ''}</p>
+                    {row.user_agent ? <p className="text-[11px] text-cc-neutral-500 mt-1 break-all">{row.user_agent}</p> : null}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -220,7 +292,14 @@ export default function AdminPartnerAccounts() {
 
         <section className="bg-cc-surface rounded-cc-xl border border-cc-border shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-cc-neutral-800">已开通账号</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-bold text-cc-neutral-800">已开通账号</h2>
+              {hasHighRisk ? (
+                <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                  <AlertTriangle size={12} /> 存在高风险账号（24h 失败≥5）
+                </span>
+              ) : null}
+            </div>
             <button type="button" onClick={fetchList} className="text-xs font-bold text-cc-primary flex items-center gap-1"><RefreshCw size={12} /> 刷新</button>
           </div>
           {loading ? (
@@ -241,6 +320,9 @@ export default function AdminPartnerAccounts() {
                     <p className="text-xs text-cc-neutral-500 mt-0.5">
                       {row.bar_id ? `门店: ${row.bar_name || row.bar_id}` : '未绑定门店'} · {row.is_active ? '启用中' : '已停用'} · 创建于 {row.created_at ? new Date(row.created_at).toLocaleString() : '--'}
                     </p>
+                    <p className={`text-xs mt-0.5 ${Number(row.recent_failed_24h || 0) >= 5 ? 'text-amber-700 font-bold' : 'text-cc-neutral-500'}`}>
+                      最近登录: {row.latest_login_at ? `${formatTime(row.latest_login_at)} · ${row.latest_login_status === 'success' ? '成功' : '失败'} · IP ${row.latest_login_ip || '--'}` : '暂无'} · 24h失败: {row.recent_failed_24h || 0}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -248,6 +330,13 @@ export default function AdminPartnerAccounts() {
                     className="px-3 py-1.5 rounded-cc bg-sky-100 text-sky-700 text-xs font-bold flex items-center gap-1"
                   >
                     <Eye size={12} /> 查看账号
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openLogModal(row)}
+                    className="px-3 py-1.5 rounded-cc bg-teal-100 text-teal-700 text-xs font-bold"
+                  >
+                    查看记录
                   </button>
                   <button
                     type="button"
