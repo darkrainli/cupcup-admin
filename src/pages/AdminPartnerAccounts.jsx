@@ -99,12 +99,13 @@ export default function AdminPartnerAccounts() {
 
   const copyCredentials = async () => {
     if (!credentialModal?.row?.email) return
-    const text = credentialModal.password
-      ? `账号: ${credentialModal.row.email}\n密码: ${credentialModal.password}`
-      : `账号: ${credentialModal.row.email}\n密码: （请先点击“重置并显示新密码”）`
+    if (!credentialModal.password) {
+      alert('请先点击“重置并显示新密码”，再复制密码')
+      return
+    }
     try {
-      await navigator.clipboard.writeText(text)
-      alert('已复制到剪贴板')
+      await navigator.clipboard.writeText(credentialModal.password)
+      alert('密码已复制到剪贴板')
     } catch {
       alert('复制失败，请手动复制')
     }
