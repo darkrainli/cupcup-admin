@@ -4,7 +4,6 @@
  */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { memFire } from '../lib/memfire'
-import { hashPassword } from '../lib/passwordHash'
 
 export { memFire }
 
@@ -73,50 +72,43 @@ export function PartnerAuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const emailTrim = (email || '').trim().toLowerCase()
     if (!emailTrim || !password) throw new Error('请输入邮箱和密码')
-    const hashed = await hashPassword(password)
-
-    const { data: accounts, error: accountError } = await memFire
-      .from('partner_accounts')
-      .select('id, email, bar_id, password_hash')
-      .eq('email', emailTrim)
-      .limit(1)
-    if (accountError) throw accountError
-
-    if (accounts?.length) {
-      const account = accounts[0]
-      if (!account.password_hash) {
-        throw new Error('账号密码未升级，请联系管理员执行密码迁移脚本')
-      }
-      if (account.password_hash !== hashed) {
-        throw new Error('邮箱或密码错误，请核对后重试')
-      }
-      persistPartnerAccount({ id: account.id, email: account.email, bar_id: account.bar_id || null })
-
-      if (account.bar_id) {
-        const { data: linkedBar } = await memFire
-          .from('bars')
-          .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description')
-          .eq('id', account.bar_id)
-          .single()
-        if (linkedBar) {
-          persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
-          persistBarRemovedByAdmin(false)
-          setUser({ id: linkedBar.id })
-          return linkedBar
-        }
-
-        // 账号绑定的门店已被删除：清理绑定并打标，提示商户重新创建门店资料
-        await memFire.from('partner_accounts').update({ bar_id: null }).eq('id', account.id)
-        persistBarRemovedByAdmin(true)
-      }
-
-      persistBar(null, null)
-      setUser({ id: account.id })
-      return { id: account.id, email: account.email, bar_id: account.bar_id || null }
+    const response = await fetch('/api/partner-login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        email: emailTrim,
+        password,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
+      })
+    })
+    const payload = await response.json()
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.message || '登录失败，请稍后重试')
     }
 
-    throw new Error('邮箱或密码错误，请核对后重试')
-  }, [persistBar, persistPartnerAccount, normalizeBarInfo])
+    const account = payload.account
+    if (!account?.id || !account?.email) throw new Error('登录返回异常，请稍后重试')
+    persistPartnerAccount({ id: account.id, email: account.email, bar_id: account.bar_id || null })
+
+    if (account.bar_id) {
+      const { data: linkedBar } = await memFire
+        .from('bars')
+        .select('id, name, category, address, contact_phone, cover_image_url, detail_images, description')
+        .eq('id', account.bar_id)
+        .single()
+      if (linkedBar) {
+        persistBar(linkedBar.id, normalizeBarInfo(linkedBar))
+        persistBarRemovedByAdmin(false)
+        setUser({ id: linkedBar.id })
+        return linkedBar
+      }
+      persistBarRemovedByAdmin(true)
+    }
+
+    persistBar(null, null)
+    setUser({ id: account.id })
+    return { id: account.id, email: account.email, bar_id: account.bar_id || null }
+  }, [persistBar, persistPartnerAccount, normalizeBarInfo, persistBarRemovedByAdmin])
 
   const logout = useCallback(() => {
     setUser(null)
@@ -129,10 +121,14 @@ export function PartnerAuthProvider({ children }) {
     if (!partnerAccount?.id) return
     const { data, error } = await memFire
       .from('partner_accounts')
-      .select('id, email, bar_id')
+      .select('id, email, bar_id, is_active')
       .eq('id', partnerAccount.id)
       .single()
     if (error || !data) return
+    if (data.is_active === false) {
+      logout()
+      return
+    }
 
     persistPartnerAccount({ id: data.id, email: data.email, bar_id: data.bar_id || null })
     setUser({ id: data.bar_id || data.id })
@@ -156,7 +152,7 @@ export function PartnerAuthProvider({ children }) {
       persistBar(null, null)
       persistBarRemovedByAdmin(true)
     }
-  }, [partnerAccount?.id, barId, persistBar, persistPartnerAccount, normalizeBarInfo, persistBarRemovedByAdmin])
+  }, [partnerAccount?.id, barId, persistBar, persistPartnerAccount, normalizeBarInfo, persistBarRemovedByAdmin, logout])
 
   // 初始化：若有缓存的 bar_id 则刷新 bar 信息；若仅有商户账号则同步绑定状态
   useEffect(() => {

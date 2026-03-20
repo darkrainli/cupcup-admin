@@ -5,7 +5,8 @@ import {
   createPartnerAccount,
   generatePartnerPassword,
   listPartnerAccounts,
-  resetPartnerPassword
+  resetPartnerPassword,
+  setPartnerAccountActive
 } from '../lib/partnerAccountService'
 
 export default function AdminPartnerAccounts() {
@@ -59,6 +60,18 @@ export default function AdminPartnerAccounts() {
       alert(`密码已重置\n邮箱: ${row.email}\n新密码: ${nextPwd}`)
     } catch (err) {
       alert(err?.message || '重置失败')
+    }
+  }
+
+  const handleToggleActive = async (row) => {
+    const next = !row.is_active
+    const text = next ? '启用' : '停用'
+    if (!window.confirm(`确认${text}商户账号 ${row.email} ?`)) return
+    try {
+      await setPartnerAccountActive({ id: row.id, isActive: next })
+      await fetchList()
+    } catch (err) {
+      alert(err?.message || `${text}失败`)
     }
   }
 
@@ -137,7 +150,7 @@ export default function AdminPartnerAccounts() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-cc-neutral-800 truncate">{row.email}</p>
                     <p className="text-xs text-cc-neutral-500 mt-0.5">
-                      {row.bar_id ? `已绑定门店: ${row.bar_id}` : '未绑定门店'} · 创建于 {row.created_at ? new Date(row.created_at).toLocaleString() : '--'}
+                      {row.bar_id ? `已绑定门店: ${row.bar_id}` : '未绑定门店'} · {row.is_active ? '启用中' : '已停用'} · 创建于 {row.created_at ? new Date(row.created_at).toLocaleString() : '--'}
                     </p>
                   </div>
                   <button
@@ -146,6 +159,13 @@ export default function AdminPartnerAccounts() {
                     className="px-3 py-1.5 rounded-cc bg-cc-neutral-900 text-white text-xs font-bold"
                   >
                     重置密码
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(row)}
+                    className={`px-3 py-1.5 rounded-cc text-xs font-bold ${row.is_active ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}
+                  >
+                    {row.is_active ? '停用' : '启用'}
                   </button>
                 </div>
               ))}

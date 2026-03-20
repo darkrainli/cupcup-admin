@@ -28,3 +28,14 @@ npm run dev
   - `MEMFIRE_SERVICE_ROLE_KEY`
 
 > 注意：若未配置后端环境变量，管理员登录会报错“缺少 MEMFIRE_URL 或 MEMFIRE_SERVICE_ROLE_KEY 环境变量”。
+
+## 安全迁移（Partner）
+
+上线前请在数据库执行：
+
+- `sql/partner_login_security_audit.sql`（商户登录锁定/审计字段与日志表）
+
+说明：
+
+- 新版商户登录走服务端 `/api/partner-login`，会记录真实 IP 与登录审计。
+- 历史 `SHA-256` 密码哈希在用户成功登录后会自动升级为更强哈希。
