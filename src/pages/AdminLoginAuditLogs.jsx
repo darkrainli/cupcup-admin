@@ -17,12 +17,19 @@ const REASON_LABELS = {
   account_disabled: '账号停用',
   password_hash_missing: '未配置密码哈希'
 }
+const PAGE_SIZE = 50
 
 function formatTime(ts) {
   if (!ts) return '-'
   const dt = new Date(ts)
   if (Number.isNaN(dt.getTime())) return '-'
   return dt.toLocaleString('zh-CN', { hour12: false })
+}
+
+function escapeCsv(value) {
+  const raw = value == null ? '' : String(value)
+  const escaped = raw.replace(/"/g, '""')
+  return `"${escaped}"`
 }
 
 export default function AdminLoginAuditLogs() {
@@ -33,6 +40,7 @@ export default function AdminLoginAuditLogs() {
   const [loginId, setLoginId] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(1)
 
   const fetchLogs = async () => {
     setLoading(true)
@@ -59,6 +67,7 @@ export default function AdminLoginAuditLogs() {
       }
 
       setList(data || [])
+      setPage(1)
     } catch (err) {
       console.error('fetch admin login audit logs failed:', err)
       setList([])
@@ -71,6 +80,42 @@ export default function AdminLoginAuditLogs() {
   useEffect(() => {
     fetchLogs()
   }, [])
+
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const startIndex = (safePage - 1) * PAGE_SIZE
+  const pageList = list.slice(startIndex, startIndex + PAGE_SIZE)
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
+
+  const exportCsv = () => {
+    if (!list.length) return
+    const headers = ['时间', '账号', '状态', '原因', '失败计数', '锁定到', 'IP', '终端信息']
+    const rows = list.map((row) => ([
+      formatTime(row.created_at),
+      row.login_id || '',
+      row.status === 'success' ? '成功' : '失败',
+      REASON_LABELS[row.reason] || row.reason || '',
+      row.failed_count ?? '',
+      formatTime(row.locked_until),
+      row.ip_address || '',
+      row.user_agent || ''
+    ]))
+    const csvContent = [headers, ...rows]
+      .map((line) => line.map(escapeCsv).join(','))
+      .join('\n')
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `admin-login-audit-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="min-h-screen bg-cc-neutral-50">
@@ -149,10 +194,19 @@ export default function AdminLoginAuditLogs() {
                 setLoginId('')
                 setDateFrom('')
                 setDateTo('')
+                setPage(1)
               }}
               className="bg-cc-neutral-100 text-cc-neutral-600 px-4 py-2 rounded-cc font-bold text-sm hover:bg-cc-neutral-200"
             >
               重置筛选
+            </button>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={loading || list.length === 0}
+              className="bg-sky-100 text-sky-700 px-4 py-2 rounded-cc font-bold text-sm hover:bg-sky-200 disabled:opacity-50"
+            >
+              导出 CSV
             </button>
             <p className="text-xs text-cc-neutral-500">默认展示最近 300 条记录</p>
           </div>
@@ -177,11 +231,12 @@ export default function AdminLoginAuditLogs() {
                     <th className="px-4 py-3 font-bold">原因</th>
                     <th className="px-4 py-3 font-bold">失败计数</th>
                     <th className="px-4 py-3 font-bold">锁定到</th>
+                    <th className="px-4 py-3 font-bold">IP</th>
                     <th className="px-4 py-3 font-bold">终端信息</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map((row) => (
+                  {pageList.map((row) => (
                     <tr key={row.id} className="border-t border-cc-border align-top">
                       <td className="px-4 py-3 whitespace-nowrap text-cc-neutral-700">{formatTime(row.created_at)}</td>
                       <td className="px-4 py-3 whitespace-nowrap font-semibold text-cc-neutral-800">{row.login_id || '-'}</td>
@@ -193,6 +248,7 @@ export default function AdminLoginAuditLogs() {
                       <td className="px-4 py-3 text-cc-neutral-700">{REASON_LABELS[row.reason] || row.reason || '-'}</td>
                       <td className="px-4 py-3 text-cc-neutral-700">{row.failed_count ?? '-'}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-cc-neutral-700">{formatTime(row.locked_until)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-cc-neutral-700">{row.ip_address || '-'}</td>
                       <td className="px-4 py-3 text-xs text-cc-neutral-500 max-w-[360px]">
                         {row.user_agent ? <p className="break-words">{row.user_agent}</p> : <p>-</p>}
                       </td>
@@ -200,6 +256,29 @@ export default function AdminLoginAuditLogs() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="border-t border-cc-border px-4 py-3 flex items-center justify-between">
+              <p className="text-xs text-cc-neutral-500">
+                共 {list.length} 条，第 {safePage}/{totalPages} 页（每页 {PAGE_SIZE} 条）
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="bg-cc-neutral-100 text-cc-neutral-600 px-3 py-1.5 rounded-cc text-xs font-bold hover:bg-cc-neutral-200 disabled:opacity-50"
+                >
+                  上一页
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="bg-cc-neutral-100 text-cc-neutral-600 px-3 py-1.5 rounded-cc text-xs font-bold hover:bg-cc-neutral-200 disabled:opacity-50"
+                >
+                  下一页
+                </button>
+              </div>
             </div>
           </div>
         )}
