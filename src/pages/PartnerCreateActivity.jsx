@@ -1,7 +1,7 @@
 /**
  * 商户活动发布页：拉取当前门店信息展示于顶部，表单含头图(1:1裁切+300KB压缩)、标题24字、详情500字、黑卡数量3-15、日期范围，提交写入 bar_events 状态 pending
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import imageCompression from 'browser-image-compression'
 import {
@@ -97,11 +97,27 @@ export default function PartnerCreateActivity() {
   // 已提交的活动列表（用于展示与审核状态）
   const [activitiesList, setActivitiesList] = useState([])
   const [activitiesLoading, setActivitiesLoading] = useState(false)
+  const [activityNotice, setActivityNotice] = useState(null)
+  const previousActivitiesRef = useRef(new Map())
+  const activitySnapshotReadyRef = useRef(false)
 
   // 编辑某条活动（仅待审核/已驳回可编辑）
   const [editingEventId, setEditingEventId] = useState(null)
   const [editingCoverUrl, setEditingCoverUrl] = useState('')
   const [editingRejectReason, setEditingRejectReason] = useState('')
+
+  const isAuthExpiredError = useCallback((err) => {
+    const msg = String(err?.message || '').toLowerCase()
+    return msg.includes('jwt expired') || msg.includes('invalid jwt') || msg.includes('token')
+  }, [])
+
+  const handleAuthExpired = useCallback((err) => {
+    if (!isAuthExpiredError(err)) return false
+    setSubmitError('登录已过期，请重新登录后再提交活动。')
+    logout()
+    navigate('/partner/login', { replace: true })
+    return true
+  }, [isAuthExpiredError, logout, navigate])
 
   // 未登录商户则跳转登录
   if (!authLoading && !isPartnerLoggedIn) {
@@ -123,18 +139,65 @@ export default function PartnerCreateActivity() {
   const fetchActivitiesList = useCallback(async () => {
     if (!barId) return
     setActivitiesLoading(true)
-    const { data, error } = await memFire
-      .from('bar_events')
-      .select('id, title, cover_image_url, status, created_at, reject_reason, max_participants, actual_verified_count')
-      .eq('bar_id', barId)
-      .order('created_at', { ascending: false })
-    setActivitiesLoading(false)
-    if (!error && data) setActivitiesList(data)
-    else setActivitiesList([])
-  }, [barId])
+    try {
+      const { data, error } = await memFire
+        .from('bar_events')
+        .select('id, title, cover_image_url, status, created_at, reject_reason, max_participants, actual_verified_count')
+        .eq('bar_id', barId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = data || []
+
+      if (activitySnapshotReadyRef.current) {
+        const previousMap = previousActivitiesRef.current
+        const currentMap = new Map(rows.map((row) => [row.id, row]))
+        const notices = []
+
+        for (const row of rows) {
+          const prev = previousMap.get(row.id)
+          if (!prev) continue
+          if (prev.status !== row.status) {
+            if (row.status === 'approved') {
+              notices.push({ type: 'success', text: `活动「${row.title || '未命名活动'}」已审核通过` })
+            } else if (row.status === 'rejected') {
+              notices.push({ type: 'warning', text: `活动「${row.title || '未命名活动'}」已被驳回` })
+            }
+          }
+        }
+
+        for (const [id, oldRow] of previousMap.entries()) {
+          if (!currentMap.has(id)) {
+            notices.push({ type: 'warning', text: `活动「${oldRow.title || '未命名活动'}」已被管理员删除` })
+          }
+        }
+
+        if (notices.length > 0) setActivityNotice(notices[0])
+      } else {
+        activitySnapshotReadyRef.current = true
+      }
+
+      previousActivitiesRef.current = new Map(rows.map((row) => [row.id, row]))
+      setActivitiesList(rows)
+    } catch (err) {
+      if (!handleAuthExpired(err)) {
+        setActivitiesList([])
+      }
+    } finally {
+      setActivitiesLoading(false)
+    }
+  }, [barId, handleAuthExpired])
 
   useEffect(() => {
     if (barId) fetchActivitiesList()
+  }, [barId, fetchActivitiesList])
+
+  // 商户端静默刷新：及时感知管理员审核/驳回/删除动作
+  useEffect(() => {
+    if (!barId) return undefined
+    const timer = setInterval(() => {
+      fetchActivitiesList()
+    }, 12000)
+    return () => clearInterval(timer)
   }, [barId, fetchActivitiesList])
 
   // 饼图数据：仅统计审核通过的活动。发起活动人数 = 总名额，实际到店人数 = 核销人数汇总（后续可接拍杯打卡去重）
@@ -176,25 +239,31 @@ export default function PartnerCreateActivity() {
   }, [cropModal.image, croppedAreaPixels])
 
   const handleStartEdit = async (eventId) => {
-    const { data, error } = await memFire.from('bar_events').select('*').eq('id', eventId).eq('bar_id', barId).single()
-    if (error || !data) {
-      setSubmitError('无法加载该活动')
-      return
+    try {
+      const { data, error } = await memFire.from('bar_events').select('*').eq('id', eventId).eq('bar_id', barId).single()
+      if (error || !data) {
+        setSubmitError('无法加载该活动')
+        return
+      }
+      setTitle(data.title ?? '')
+      setContent(data.content ?? '')
+      setTargetBlackCardCount(Math.min(15, Math.max(3, Number(data.target_black_card_count) || 5)))
+      setMaxParticipants(Math.max(1, Number(data.max_participants) ?? 10))
+      setStartTime(data.start_time ? data.start_time.slice(0, 16) : '')
+      setEndTime(data.end_time ? data.end_time.slice(0, 16) : '')
+      setAddress(data.address ?? '')
+      setContactPhone(data.contact_phone ?? '')
+      setCoverPreviewUrl(data.cover_image_url ?? '')
+      setCoverFile(null)
+      setEditingCoverUrl(data.cover_image_url ?? '')
+      setEditingRejectReason(data.reject_reason ?? '')
+      setEditingEventId(eventId)
+      setSubmitError('')
+    } catch (err) {
+      if (!handleAuthExpired(err)) {
+        setSubmitError('无法加载该活动')
+      }
     }
-    setTitle(data.title ?? '')
-    setContent(data.content ?? '')
-    setTargetBlackCardCount(Math.min(15, Math.max(3, Number(data.target_black_card_count) || 5)))
-    setMaxParticipants(Math.max(1, Number(data.max_participants) ?? 10))
-    setStartTime(data.start_time ? data.start_time.slice(0, 16) : '')
-    setEndTime(data.end_time ? data.end_time.slice(0, 16) : '')
-    setAddress(data.address ?? '')
-    setContactPhone(data.contact_phone ?? '')
-    setCoverPreviewUrl(data.cover_image_url ?? '')
-    setCoverFile(null)
-    setEditingCoverUrl(data.cover_image_url ?? '')
-    setEditingRejectReason(data.reject_reason ?? '')
-    setEditingEventId(eventId)
-    setSubmitError('')
   }
 
   const handleCancelEdit = () => {
@@ -269,7 +338,9 @@ export default function PartnerCreateActivity() {
       setEndTime('')
       fetchActivitiesList()
     } catch (err) {
-      setSubmitError(err?.message || '提交失败，请稍后重试')
+      if (!handleAuthExpired(err)) {
+        setSubmitError(err?.message || '提交失败，请稍后重试')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -389,6 +460,20 @@ export default function PartnerCreateActivity() {
           </button>
         </div>
       </nav>
+
+      {activityNotice && (
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <div
+            className={`rounded-cc px-4 py-3 text-sm font-semibold ${
+              activityNotice.type === 'success'
+                ? 'bg-cc-success-bg text-cc-success'
+                : 'bg-cc-warning-bg text-cc-warning'
+            }`}
+          >
+            {activityNotice.text}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* 顶部：当前门店信息 + 到店转化饼图 */}
