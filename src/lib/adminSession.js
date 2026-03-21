@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'admin_session_v1'
 const FALLBACK_KEY = 'isLoggedIn'
-const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000
+const DEFAULT_TTL_MS = 15 * 24 * 60 * 60 * 1000
 
 function readRawSession() {
   if (typeof window === 'undefined') return null
@@ -41,4 +41,3 @@ export function clearAdminSession() {
   localStorage.removeItem(STORAGE_KEY)
   localStorage.removeItem(FALLBACK_KEY)
 }
-

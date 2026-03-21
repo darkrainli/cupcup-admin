@@ -6,6 +6,7 @@ const AUDIT_TABLE = 'partner_login_audit_logs'
 const MAX_FAILED_ATTEMPTS = 5
 const LOCK_MINUTES = 15
 const LOCK_MS = LOCK_MINUTES * 60 * 1000
+const PARTNER_SESSION_EXPIRE_SECONDS = 15 * 24 * 60 * 60
 
 function json(res, status, payload) {
   res.status(status).setHeader('content-type', 'application/json; charset=utf-8')
@@ -47,7 +48,7 @@ function signPartnerSessionToken({ jwtSecret, accountId, email }) {
     aud: 'authenticated',
     iss: 'cupcup-admin',
     iat: now,
-    exp: now + 12 * 60 * 60,
+    exp: now + PARTNER_SESSION_EXPIRE_SECONDS,
     sub: String(accountId),
     partner_account_id: String(accountId),
     email: String(email || '').toLowerCase()
