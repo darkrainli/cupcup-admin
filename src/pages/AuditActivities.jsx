@@ -53,6 +53,42 @@ export default function AuditActivities() {
     setLoadingParticipants(false)
   }, [])
 
+  const pushActivityLaunchMessages = useCallback(async (eventRow) => {
+    if (!eventRow?.id) return { pushed: 0 }
+
+    const { data: cards, error: cardsError } = await memFire
+      .from('user_ssr_cards')
+      .select('user_id')
+      .eq('event_id', eventRow.id)
+
+    if (cardsError) throw cardsError
+
+    const userIds = [...new Set((cards || []).map((r) => r?.user_id).filter(Boolean))]
+    if (!userIds.length) return { pushed: 0 }
+
+    const rows = userIds.map((uid) => ({
+      user_id: uid,
+      type: 'activity',
+      event: 'activity_new_ssr',
+      title: eventRow.title || '新活动上新',
+      body: `SSR 活动「${eventRow.title || '新活动'}」已上新，可在首页查看活动详情。`,
+      cta_text: '回首页',
+      cta_route: '/home',
+      cta_action: 'open_home_ssr_event',
+      cta_payload: { activityEventId: eventRow.id },
+      is_read: false
+    }))
+
+    const chunkSize = 500
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize)
+      const { error } = await memFire.from('user_messages').insert(chunk)
+      if (error) throw error
+    }
+
+    return { pushed: rows.length }
+  }, [])
+
   const openDetail = (row) => {
     setDetail(row)
     if (row?.status === 'approved' && row?.id) fetchRecipients(row.id)
@@ -86,6 +122,7 @@ export default function AuditActivities() {
       setRejectReason('')
     }
     setSaving(true)
+    const wasApproved = detail.status === 'approved'
     const payload = {
       ...(detailForm && {
         title: detailForm.title?.slice(0, 24),
@@ -101,6 +138,21 @@ export default function AuditActivities() {
       ...(newStatus === 'rejected' && { reject_reason: (rejectReasonText ?? rejectReason).trim() })
     }
     const { error } = await memFire.from('bar_events').update(payload).eq('id', detail.id)
+    let pushed = 0
+    let pushErrorMsg = ''
+    if (!error && newStatus === 'approved' && !wasApproved) {
+      try {
+        const nextEvent = {
+          ...detail,
+          ...payload,
+          id: detail.id
+        }
+        const result = await pushActivityLaunchMessages(nextEvent)
+        pushed = result?.pushed || 0
+      } catch (err) {
+        pushErrorMsg = err?.message || '活动消息写入失败'
+      }
+    }
     setSaving(false)
     if (error) {
       alert('操作失败：' + (error.message || '未知错误'))
@@ -109,7 +161,13 @@ export default function AuditActivities() {
     setDetail(null)
     setDetailForm(null)
     fetchAll()
-    if (newStatus === 'approved') alert('已通过审核，系统将按规则向黑卡用户发卡。')
+    if (newStatus === 'approved') {
+      if (pushErrorMsg) {
+        alert(`已通过审核，但活动消息写入失败：${pushErrorMsg}`)
+      } else {
+        alert(`已通过审核，系统将按规则向黑卡用户发卡，并推送 ${pushed} 条活动消息。`)
+      }
+    }
     else alert('已驳回，商户将看到您填写的驳回理由。')
   }
 
@@ -167,9 +225,14 @@ export default function AuditActivities() {
                   <button
                     type="button"
                     onClick={() => openDetail(row)}
-                    className="bg-cc-primary text-white px-4 py-2 rounded-cc font-bold text-sm hover:bg-cc-primary-hover"
+                    disabled={row.status !== 'pending'}
+                    className={`px-4 py-2 rounded-cc font-bold text-sm ${
+                      row.status === 'pending'
+                        ? 'bg-cc-primary text-white hover:bg-cc-primary-hover'
+                        : 'bg-cc-neutral-200 text-cc-neutral-500 cursor-not-allowed'
+                    }`}
                   >
-                    查看 / 审核
+                    {row.status === 'pending' ? '查看 / 审核' : '已审核'}
                   </button>
                 </div>
               </li>
