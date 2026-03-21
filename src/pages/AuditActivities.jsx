@@ -53,17 +53,24 @@ export default function AuditActivities() {
     setLoadingParticipants(false)
   }, [])
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
   const pushActivityLaunchMessages = useCallback(async (eventRow) => {
     if (!eventRow?.id) return { pushed: 0 }
 
-    const { data: cards, error: cardsError } = await memFire
-      .from('user_ssr_cards')
-      .select('user_id')
-      .eq('event_id', eventRow.id)
+    let userIds = []
+    // 审核通过后，SSR 发卡可能存在短暂异步延迟；轮询等待收件人生成，避免消息漏发。
+    for (let i = 0; i < 10; i += 1) {
+      const { data: cards, error: cardsError } = await memFire
+        .from('user_ssr_cards')
+        .select('user_id')
+        .eq('event_id', eventRow.id)
+      if (cardsError) throw cardsError
+      userIds = [...new Set((cards || []).map((r) => r?.user_id).filter(Boolean))]
+      if (userIds.length > 0) break
+      if (i < 9) await sleep(400)
+    }
 
-    if (cardsError) throw cardsError
-
-    const userIds = [...new Set((cards || []).map((r) => r?.user_id).filter(Boolean))]
     if (!userIds.length) return { pushed: 0 }
 
     const rows = userIds.map((uid) => ({
