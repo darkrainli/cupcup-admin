@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, Shield, Search } from 'lucide-react'
 import { memFire } from '../lib/memfire'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 
 const STATUS_OPTIONS = [
   { label: '全部状态', value: 'all' },
@@ -129,6 +130,9 @@ export default function AdminLoginAuditLogs() {
             <div className="bg-sky-100 text-sky-700 p-2 rounded-cc"><Shield size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">管理员登录审计</h1>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 

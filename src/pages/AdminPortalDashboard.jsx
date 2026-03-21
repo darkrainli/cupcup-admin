@@ -1,6 +1,7 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { CheckCircle2, FileText, MapPin, Megaphone, Settings, Shield, Ticket, UserPlus, Users } from 'lucide-react'
 import { clearAdminSession, isAdminAuthenticated } from '../lib/adminSession'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 
 const MODULES = [
   {
@@ -93,6 +94,7 @@ export default function AdminPortalDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <AdminPartnerRequestQuickLinks />
           <span className="text-xs font-bold text-cc-success bg-cc-success-bg px-3 py-1 rounded-full flex items-center gap-1">
             <CheckCircle2 size={12} /> 模块总览
           </span>

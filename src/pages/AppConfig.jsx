@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom'
 import { Wine, Loader2, Save, Settings, CalendarCheck, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { memFire } from '../lib/memfire'
 import { isAdminAuthenticated } from '../lib/adminSession'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 
 const PLATFORMS = [
   { value: 'zhipu', label: '智谱' },
@@ -212,6 +213,9 @@ export default function AppConfig() {
             <Settings size={20} strokeWidth={1.5} />
           </div>
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">App 配置</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 

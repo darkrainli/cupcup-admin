@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, FileText, Loader2, X, XCircle } from 'lucide-react'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 import {
   approveMerchantProfileRequest,
   getBarById,
@@ -162,6 +163,9 @@ export default function MerchantProfileReviews() {
             <div className="bg-cc-warning-bg text-cc-warning p-2 rounded-cc"><FileText size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">商户审核</h1>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 

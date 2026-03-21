@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { memFire } from '../lib/memfire'
 import { Loader2, CheckCircle2, XCircle, ArrowLeft, FileText, Calendar, X, AlertCircle, Users, Ticket } from 'lucide-react'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 
 export default function AuditActivities() {
   const [list, setList] = useState([])
@@ -190,6 +191,9 @@ export default function AuditActivities() {
             <div className="bg-violet-100 text-violet-700 p-2 rounded-cc"><Ticket size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">活动审核</h1>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 

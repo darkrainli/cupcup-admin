@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import imageCompression from 'browser-image-compression'
 import { ArrowLeft, Megaphone, Loader2, Send, Save, Pencil, FileText, Upload, Scissors, Trash2 } from 'lucide-react'
 import { isAdminAuthenticated } from '../lib/adminSession'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 import {
   deleteAnnouncementById,
   fetchAnnouncements,
@@ -232,6 +233,9 @@ export default function AppOfficialMessages() {
             <div className="bg-slate-100 text-slate-700 p-2 rounded-cc"><Megaphone size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">App 官方消息</h1>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 

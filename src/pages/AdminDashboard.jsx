@@ -10,6 +10,7 @@ import {
   getPartnerAccountByBarId,
   upsertPartnerAccountForBar
 } from '../lib/partnerAccountService'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 
 function moveItem(arr, fromIndex, toIndex) {
   const copy = [...arr]
@@ -705,6 +706,9 @@ function AdminDashboard() {
             <MapPin size={20} strokeWidth={1.5} />
           </div>
           <h1 className="text-lg font-semibold text-cc-neutral-800 tracking-tight">录入店铺</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 

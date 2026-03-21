@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, Copy, Eye, Loader2, RefreshCw, UserPlus, X } from 'lucide-react'
 import { memFire } from '../lib/memfire'
+import AdminPartnerRequestQuickLinks from '../components/AdminPartnerRequestQuickLinks'
 import {
   createPartnerAccount,
   generatePartnerPassword,
@@ -238,6 +239,9 @@ export default function AdminPartnerAccounts() {
             <div className="bg-cc-success-bg text-cc-success p-2 rounded-cc"><UserPlus size={20} strokeWidth={1.5} /></div>
             <h1 className="text-lg font-semibold text-cc-neutral-800">商户账号开通</h1>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <AdminPartnerRequestQuickLinks />
         </div>
       </nav>
 
